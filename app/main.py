@@ -1,6 +1,7 @@
 from flask import Flask
 from flask import request
 from flask import jsonify
+from flask_sslify import SSLify
 from app.config import URL
 import requests
 import json
@@ -45,4 +46,5 @@ def main():
 
 
 if __name__ == '__main__':
+    send_message(455204578, "Запущен")
     app.run()
