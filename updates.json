@@ -1,0 +1,47 @@
+{
+  "ok": true,
+  "result": [
+    {
+      "update_id": 242481681,
+      "message": {
+        "message_id": 24,
+        "from": {
+          "id": 455204578,
+          "is_bot": false,
+          "first_name": "kurikuri",
+          "username": "kurimeha933",
+          "language_code": "ru"
+        },
+        "chat": {
+          "id": 455204578,
+          "first_name": "kurikuri",
+          "username": "kurimeha933",
+          "type": "private"
+        },
+        "date": 1604175295,
+        "text": "test"
+      }
+    },
+    {
+      "update_id": 242481682,
+      "message": {
+        "message_id": 26,
+        "from": {
+          "id": 455204578,
+          "is_bot": false,
+          "first_name": "kurikuri",
+          "username": "kurimeha933",
+          "language_code": "ru"
+        },
+        "chat": {
+          "id": 455204578,
+          "first_name": "kurikuri",
+          "username": "kurimeha933",
+          "type": "private"
+        },
+        "date": 1604175952,
+        "text": "ку"
+      }
+    }
+  ]
+}
