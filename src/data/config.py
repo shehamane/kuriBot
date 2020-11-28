@@ -10,4 +10,6 @@ admins = [
     os.getenv("ADMIN_ID"),
 ]
 
-ip = os.getenv("ip")
+PG_HOST = os.getenv("PG_HOST")
+PG_USER = os.getenv("PG_USER")
+PG_PASS = os.getenv("PG_PASS")
