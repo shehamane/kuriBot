@@ -13,6 +13,11 @@ class DBCommands:
     COUNT_USERS = "SELECT COUNT(*) FROM users"
     GET_ID = "SELECT id FROM users WHERE chat_id = $1"
     CHANGE_FULLNAME = "UPDATE users SET full_name = $2 WHERE chat_id = $1"
+    ADD_NEW_PRODUCT = "INSERT INTO products(name, description) VALUES ($1, $2) RETURNING id"
+    REMOVE_PRODUCT = "DELETE FROM products WHERE name = $1"
+    GET_PRODUCTS_LIST = "SELECT id, name, description FROM products OFFSET $1 LIMIT $2"
+    COUNT_PRODUCTS = "SELECT COUNT(*) FROM products"
+    GET_PRODUCT = "SELECT description FROM products WHERE id = $1"
 
     async def add_new_user(self):
         user = types.User.get_current()
@@ -44,53 +49,25 @@ class DBCommands:
         user_id = types.User.get_current().id
         await self.pool.execute(command, user_id, fullname)
 
+    async def add_new_product(self, name, description):
+        command = self.ADD_NEW_PRODUCT
+        return await self.pool.fetchval(command, name, description)
+
+    async def remove_product(self, name):
+        command = self.REMOVE_PRODUCT
+        return await self.pool.execute(command, name)
+
+    async def get_products_list(self, offset, limit):
+        command = self.GET_PRODUCTS_LIST
+        return await self.pool.fetch(command, offset, limit)
+
+    async def count_products(self):
+        command = self.COUNT_PRODUCTS
+        return await self.pool.fetchval(command)
+
+    async def get_product(self, id):
+        command = self.GET_PRODUCT
+        return await self.pool.fetchval(command, id)
+
 
 db = DBCommands()
-
-
-# @dp.message_handler(commands=["start"])
-# async def register_user(message: types.Message):
-#     chat_id = message.from_user.id
-#     referral = message.get_args()
-#     id = await db.add_new_user(referral=referral)
-#     count_users = await db.count_users()
-#
-#     text = ""
-#     if not id:
-#         id = await db.get_id()
-#     else:
-#         text += "Записал в базу! "
-#
-#     bot_username = (await bot.me).usernam
-#     bot_link = f"https://t.me/{bot_username}?start={id}"
-#     balance = await db.check_balance()
-#     text += f"""
-# Сейчас в базе {count_users} человек!
-# Ваша реферальная ссылка: {bot_link}
-# Проверить рефералов можно по команде: /referrals
-# Ваш баланс: {balance} монет.
-# Добавить монет: /add_money
-# """
-#
-#     await bot.send_message(chat_id, text)
-#
-#
-# @dp.message_handler(commands=["referrals"])
-# async def check_referrals(message: types.Message):
-#     referrals = await db.check_referrals()
-#     text = f"Ваши рефералы:\n{referrals}"
-#
-#     await message.answer(text)
-#
-#
-# @dp.message_handler(commands=["add_money"])
-# async def add_money(message: types.Message):
-#     random_amount = random.randint(1, 100)
-#     await db.add_money(random_amount)
-#     balance = await db.check_balance()
-#
-#     text = f"""
-# Вам было добавлено {random_amount} монет.
-# Теперь ваш баланс: {balance}
-#     """
-#     await message.answer(text)
