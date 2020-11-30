@@ -37,7 +37,7 @@ async def show_first_page(message: Message, state: FSMContext):
 
 @dp.callback_query_handler(state=ProductSelection.Selection, text="next")
 async def show_next_page(call: CallbackQuery, state: FSMContext):
-    await call.answer(cache_time=120)
+    await call.answer(cache_time=0)
     async with state.proxy() as data:
         if data["page_num"] < int(await db.count_products() / PAGE_VOLUME):
             data["page_num"] += 1
@@ -53,7 +53,7 @@ async def show_next_page(call: CallbackQuery, state: FSMContext):
 
 @dp.callback_query_handler(state=ProductSelection.Selection, text="previous")
 async def show_previous_page(call: CallbackQuery, state: FSMContext):
-    await call.answer(cache_time=120)
+    await call.answer(cache_time=0)
     async with state.proxy() as data:
         if data["page_num"] > 0:
             data["page_num"] -= 1
@@ -75,7 +75,7 @@ async def cancel_listing(message: Message, state: FSMContext):
 
 @dp.callback_query_handler(state=ProductSelection.Selection, text="cancel")
 async def cancel_listing(call: CallbackQuery, state: FSMContext):
-    await call.answer(cache_time=120)
+    await call.answer(cache_time=0)
     await call.message.answer("Вы покинули каталог.", reply_markup=menu)
     await state.finish()
 
