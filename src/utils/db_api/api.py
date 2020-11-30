@@ -1,5 +1,3 @@
-import random
-
 from aiogram import types
 from asyncpg import Connection, Record
 from asyncpg.exceptions import UniqueViolationError
@@ -15,7 +13,7 @@ class DBCommands:
     CHANGE_FULLNAME = "UPDATE users SET full_name = $2 WHERE chat_id = $1"
     ADD_NEW_PRODUCT = "INSERT INTO products(name, description) VALUES ($1, $2) RETURNING id"
     REMOVE_PRODUCT = "DELETE FROM products WHERE name = $1"
-    GET_PRODUCTS_LIST = "SELECT id, name, description FROM products OFFSET $1 LIMIT $2"
+    GET_PRODUCTS_LIST = "SELECT id, name FROM products OFFSET $1 LIMIT $2"
     COUNT_PRODUCTS = "SELECT COUNT(*) FROM products"
     GET_PRODUCT = "SELECT description FROM products WHERE id = $1"
 
@@ -65,9 +63,9 @@ class DBCommands:
         command = self.COUNT_PRODUCTS
         return await self.pool.fetchval(command)
 
-    async def get_product(self, id):
+    async def get_product(self, product_id):
         command = self.GET_PRODUCT
-        return await self.pool.fetchval(command, id)
+        return await self.pool.fetchval(command, product_id)
 
 
 db = DBCommands()
