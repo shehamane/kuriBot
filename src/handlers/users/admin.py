@@ -1,6 +1,7 @@
 from aiogram.types import Message
 from aiogram.dispatcher.filters import Command, Text
 from aiogram.dispatcher import FSMContext
+from re import match
 
 from utils.misc.files import download_product_image
 
@@ -21,6 +22,9 @@ async def add_product(message: Message):
 @dp.message_handler(state=ProductAddition.NameRequest)
 async def get_addition_name(message: Message, state: FSMContext):
     name = message.text
+    if name.isnumeric():
+        await message.answer(f"Имя товара не может состоять только из цифр! Попробуйте еще раз:")
+        return
     await state.update_data({"name": name})
 
     await message.answer(f"Добавьте описание для {name}:")
@@ -30,6 +34,8 @@ async def get_addition_name(message: Message, state: FSMContext):
 @dp.message_handler(state=ProductAddition.DescriptionRequest)
 async def get_description(message: Message, state: FSMContext):
     description = message.text
+    await state.update_data({"description": description})
+
     name = (await state.get_data()).get("name")
     id = await db.add_new_product(name, description)
     await state.update_data({"id": id})
@@ -56,15 +62,18 @@ async def add_product_final(message: Message, state: FSMContext):
 
 @dp.message_handler(Command("remove_product"), state=None)
 async def remove_product(message: Message):
-    await message.answer("Введите имя продукта, который хотите удалить:")
+    await message.answer("Введите имя или ID продукта, который хотите удалить:")
 
     await ProductRemoving.NameRequest.set()
 
 
 @dp.message_handler(state=ProductRemoving.NameRequest)
 async def get_removing_name(message: Message, state: FSMContext):
-    name = message.text
-    await db.remove_product(name)
+    text = message.text
+    if text.isnumeric():
+        await db.remove_product(int(text))
+    else:
+        await db.remove_product_by_name(text)
 
     await message.answer("Продукт успешно удален!")
     await state.finish()

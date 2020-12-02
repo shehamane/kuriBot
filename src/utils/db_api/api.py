@@ -12,7 +12,8 @@ class DBCommands:
     GET_ID = "SELECT id FROM users WHERE chat_id = $1"
     CHANGE_FULLNAME = "UPDATE users SET full_name = $2 WHERE chat_id = $1"
     ADD_NEW_PRODUCT = "INSERT INTO products(name, description) VALUES ($1, $2) RETURNING id"
-    REMOVE_PRODUCT = "DELETE FROM products WHERE name = $1"
+    REMOVE_PRODUCT_BY_NAME = "DELETE FROM products WHERE name = $1"
+    REMOVE_PRODUCT = "DELETE FROM products WHERE id = $1"
     GET_PRODUCTS_LIST = "SELECT id, name FROM products OFFSET $1 LIMIT $2"
     COUNT_PRODUCTS = "SELECT COUNT(*) FROM products"
     GET_PRODUCT = "SELECT description FROM products WHERE id = $1"
@@ -51,9 +52,13 @@ class DBCommands:
         command = self.ADD_NEW_PRODUCT
         return await self.pool.fetchval(command, name, description)
 
-    async def remove_product(self, name):
-        command = self.REMOVE_PRODUCT
+    async def remove_product_by_name(self, name):
+        command = self.REMOVE_PRODUCT_BY_NAME
         return await self.pool.execute(command, name)
+
+    async def remove_product(self, product_id):
+        command = self.REMOVE_PRODUCT
+        return await self.pool.execute(command, product_id)
 
     async def get_products_list(self, offset, limit):
         command = self.GET_PRODUCTS_LIST
