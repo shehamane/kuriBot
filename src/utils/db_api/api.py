@@ -16,7 +16,7 @@ class DBCommands:
     REMOVE_PRODUCT = "DELETE FROM products WHERE id = $1"
     GET_PRODUCTS_LIST = "SELECT id, name FROM products OFFSET $1 LIMIT $2"
     COUNT_PRODUCTS = "SELECT COUNT(*) FROM products"
-    GET_PRODUCT = "SELECT description FROM products WHERE id = $1"
+    GET_PRODUCT = "SELECT name, description FROM products WHERE id = $1"
 
     async def add_new_user(self):
         user = types.User.get_current()
@@ -70,7 +70,7 @@ class DBCommands:
 
     async def get_product(self, product_id):
         command = self.GET_PRODUCT
-        return await self.pool.fetchval(command, product_id)
+        return await self.pool.fetch(command, product_id)
 
 
 db = DBCommands()

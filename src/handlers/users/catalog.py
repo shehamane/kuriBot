@@ -86,13 +86,15 @@ async def cancel_listing(call: CallbackQuery, state: FSMContext):
 async def show_product(message: Message):
     if message.text.isnumeric():
         product_id = int(message.text)
-        desc = await db.get_product(product_id)
-        if desc:
+        product = (await db.get_product(product_id))
+        if product:
+            product = product[0]
             images = await get_product_images(product_id)
             if images:
                 for path in images:
                     await message.answer_photo(InputFile(path))
-            await message.answer(desc)
+            text = f"{product['name']}\n{product['description']}"
+            await message.answer(text)
         else:
             await message.answer("Товара с таким ID не существует. (\"Отмена\" для выхода из каталога)")
     else:
