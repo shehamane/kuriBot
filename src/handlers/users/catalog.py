@@ -1,6 +1,8 @@
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, InputFile
 from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher import FSMContext
+
+from utils.misc.files import get_product_images
 
 from loader import dp
 from utils.db_api.api import db
@@ -83,8 +85,13 @@ async def cancel_listing(call: CallbackQuery, state: FSMContext):
 @dp.message_handler(state=ProductSelection.Selection)
 async def show_product(message: Message):
     if message.text.isnumeric():
-        desc = await db.get_product(int(message.text))
+        product_id = int(message.text)
+        desc = await db.get_product(product_id)
         if desc:
+            images = await get_product_images(product_id)
+            if images:
+                for path in images:
+                    await message.answer_photo(InputFile(path))
             await message.answer(desc)
         else:
             await message.answer("Товара с таким ID не существует. (\"Отмена\" для выхода из каталога)")

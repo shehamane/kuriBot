@@ -2,6 +2,8 @@ from aiogram.types import Message
 from aiogram.dispatcher.filters import Command, Text
 from aiogram.dispatcher import FSMContext
 
+from utils.misc.files import download_product_image
+
 from utils.db_api.api import db
 from loader import dp
 
@@ -29,9 +31,24 @@ async def get_addition_name(message: Message, state: FSMContext):
 async def get_description(message: Message, state: FSMContext):
     description = message.text
     name = (await state.get_data()).get("name")
-    await db.add_new_product(name, description)
+    id = await db.add_new_product(name, description)
+    await state.update_data({"id": id})
 
-    await message.answer("Продукт успешно добавлен!")
+    await message.answer(f"Добавьте изображение для {name} (или отправьте любое сообщение чтобы пропустить):")
+    await ProductAddition.next()
+
+
+@dp.message_handler(state=ProductAddition.ImageRequest, content_types=['photo'])
+async def get_image(message: Message, state: FSMContext):
+    product_id = (await state.get_data()).get("id")
+    await download_product_image(product_id, message.photo[-1])
+    await message.answer(f"Продукт успешно добавлен!")
+    await state.finish()
+
+
+@dp.message_handler(state=ProductAddition.ImageRequest)
+async def add_product_final(message: Message, state: FSMContext):
+    await message.answer(f"Продукт успешно добавлен!")
     await state.finish()
 
 
