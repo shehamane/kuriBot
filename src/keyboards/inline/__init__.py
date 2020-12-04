@@ -1,1 +1,1 @@
-from .catalog_listing import listing
+from .catalog_listing import listing, catalog_button

@@ -13,3 +13,4 @@ admins = [
 PG_HOST = os.getenv("PG_HOST")
 PG_USER = os.getenv("PG_USER")
 PG_PASS = os.getenv("PG_PASS")
+PG_DBNAME = os.getenv("PG_DBNAME")

@@ -7,7 +7,7 @@ from utils.misc.files import get_product_images
 from loader import dp
 from utils.db_api.api import db
 
-from keyboards.inline import listing
+from keyboards.inline import listing, catalog_button
 from keyboards.default import menu
 from states.product_selection import ProductSelection
 
@@ -25,7 +25,8 @@ async def get_products_list_text(products):
 async def show_first_page(message: Message, state: FSMContext):
     products = await db.get_products_list(0, PAGE_VOLUME)
     if not products:
-        text = "Каталог пуст."
+        await message.answer("Каталог пуст.")
+        return
     else:
         text = await get_products_list_text(products)
         await state.update_data({"page_num": 0})
@@ -34,6 +35,22 @@ async def show_first_page(message: Message, state: FSMContext):
                 "Чтобы покинуть каталог нажмите или введите \"Отмена\".\n"
     await message.answer(text_help)
     await message.answer(text, reply_markup=listing)
+    await ProductSelection.Selection.set()
+
+
+@dp.callback_query_handler(state=ProductSelection.Selection, text="catalog")
+async def show_catalog(call: CallbackQuery, state: FSMContext):
+    await call.answer(cache_time=0)
+    async with state.proxy() as data:
+        products = await db.get_products_list(data["page_num"] * PAGE_VOLUME, PAGE_VOLUME)
+    if not products:
+        await call.message.answer("Каталог пуст.")
+        return
+    else:
+        text = await get_products_list_text(products)
+        await state.update_data({"page_num": 0})
+
+    await call.message.answer(text, reply_markup=listing)
     await ProductSelection.Selection.set()
 
 
@@ -94,7 +111,7 @@ async def show_product(message: Message):
                 for path in images:
                     await message.answer_photo(InputFile(path))
             text = f"{product['name']}\n{product['description']}"
-            await message.answer(text)
+            await message.answer(text, reply_markup=catalog_button)
         else:
             await message.answer("Товара с таким ID не существует. (\"Отмена\" для выхода из каталога)")
     else:

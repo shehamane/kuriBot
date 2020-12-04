@@ -11,3 +11,11 @@ listing = InlineKeyboardMarkup(
         ]
     ]
 )
+
+catalog_button = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Вернуться в каталог", callback_data="catalog")
+        ]
+    ]
+)

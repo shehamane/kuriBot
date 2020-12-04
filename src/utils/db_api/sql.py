@@ -4,7 +4,7 @@ import logging
 
 from asyncpg.exceptions import DuplicateTableError
 
-from data.config import PG_HOST, PG_USER, PG_PASS
+from data.config import PG_HOST, PG_USER, PG_PASS, PG_DBNAME
 
 logging.basicConfig(format=u'%(filename)s [LINE:%(lineno)d] #%(levelname)-8s [%(asctime)s]  %(message)s',
                     level=logging.INFO)
@@ -17,7 +17,8 @@ async def create_db():
     conn: asyncpg.Connection = await asyncpg.connect(
         user=PG_USER,
         password=PG_PASS,
-        host=PG_HOST
+        host=PG_HOST,
+        database=PG_DBNAME
     )
     try:
         await conn.execute(create_db_command)
@@ -32,7 +33,8 @@ async def create_pool():
     return await asyncpg.create_pool(
         user=PG_USER,
         password=PG_PASS,
-        host=PG_HOST
+        host=PG_HOST,
+        database=PG_DBNAME
     )
 
 
