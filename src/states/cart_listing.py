@@ -1,6 +1,6 @@
 from aiogram.dispatcher.filters.state import StatesGroup, State
 
 
-class ProductSelection(StatesGroup):
-    Selection = State()
+class CartListing(StatesGroup):
+    CartWatching = State()
     ProductWatching = State()

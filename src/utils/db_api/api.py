@@ -11,12 +11,20 @@ class DBCommands:
     COUNT_USERS = "SELECT COUNT(*) FROM users"
     GET_ID = "SELECT id FROM users WHERE chat_id = $1"
     CHANGE_FULLNAME = "UPDATE users SET full_name = $2 WHERE chat_id = $1"
+
     ADD_NEW_PRODUCT = "INSERT INTO products(name, description) VALUES ($1, $2) RETURNING id"
     REMOVE_PRODUCT_BY_NAME = "DELETE FROM products WHERE name = $1"
     REMOVE_PRODUCT = "DELETE FROM products WHERE id = $1"
     GET_PRODUCTS_LIST = "SELECT id, name FROM products OFFSET $1 LIMIT $2"
     COUNT_PRODUCTS = "SELECT COUNT(*) FROM products"
     GET_PRODUCT = "SELECT name, description FROM products WHERE id = $1"
+
+    ADD_TO_CART = "INSERT INTO cart(user_id, product_id, number) VALUES  ($1, $2, $3) RETURNING id"
+    CHANGE_FROM_CART = "UPDATE cart SET number=$3 WHERE user_id = $1 AND product_id = $2"
+    DELETE_FROM_CART = "DELETE FROM cart WHERE user_id = $1 AND product_id = $2"
+    GET_CART_LIST = "SELECT id, product_id, number FROM cart WHERE user_id = $1 OFFSET $2 LIMIT $3"
+    COUNT_CART = "SELECT COUNT(*) FROM cart WHERE user_id = $1"
+    GET_CART_RECORD = "SELECT product_id, number FROM cart WHERE id = $1"
 
     async def add_new_user(self):
         user = types.User.get_current()
@@ -70,7 +78,36 @@ class DBCommands:
 
     async def get_product(self, product_id):
         command = self.GET_PRODUCT
-        return await self.pool.fetch(command, product_id)
+        return await self.pool.fetchrow(command, product_id)
+
+    async def add_to_cart(self, product_id, number):
+        command = self.ADD_TO_CART
+        user_id = await self.get_id()
+        return await self.pool.fetchval(command, user_id, product_id, number)
+
+    async def change_from_cart(self, product_id, new_number):
+        command = self.CHANGE_FROM_CART
+        user_id = await self.get_id()
+        return await self.pool.fetchval(command, user_id, product_id, new_number)
+
+    async def delete_from_cart(self, product_id):
+        command = self.DELETE_FROM_CART
+        user_id = await self.get_id()
+        return await self.pool.fetchval(command, user_id, product_id)
+
+    async def get_cart_list(self, offset, limit):
+        command = self.GET_CART_LIST
+        user_id = await self.get_id()
+        return await self.pool.fetch(command, user_id, offset, limit)
+
+    async def count_cart(self):
+        command = self.COUNT_CART
+        user_id = await self.get_id()
+        return await self.pool.fetchval(command, user_id)
+
+    async def get_cart_record(self, record_id):
+        command = self.GET_CART_RECORD
+        return await self.pool.fetchrow(command, record_id)
 
 
 db = DBCommands()
