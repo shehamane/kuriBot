@@ -6,6 +6,7 @@ from aiogram import Dispatcher
 
 def setup(dp: Dispatcher):
     from .is_numeric import IsNumericFilter
+    from .is_positive import IsPositiveFilter
     text_messages = [
         dp.message_handlers,
         dp.edited_message_handlers,
@@ -14,3 +15,4 @@ def setup(dp: Dispatcher):
     ]
 
     dp.filters_factory.bind(IsNumericFilter, event_handlers=text_messages)
+    dp.filters_factory.bind(IsPositiveFilter, event_handlers=text_messages)

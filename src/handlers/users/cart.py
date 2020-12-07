@@ -2,6 +2,7 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, InputFile
 
+from filters.is_positive import IsPositiveFilter
 from keyboards.inline import product_watching_keyboard, cart_record_watching
 from utils.misc.files import get_product_images
 from states import CartListing
@@ -14,6 +15,10 @@ from data.api_config import PAGE_VOLUME
 
 async def get_cart_keyboard(page_num):
     cart_list = await db.get_cart_list(page_num * PAGE_VOLUME, PAGE_VOLUME)
+    if len(cart_list) == 0 and page_num > 0:
+        page_num -= 1
+        cart_list = await db.get_cart_list(page_num * PAGE_VOLUME, PAGE_VOLUME)
+
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
 
@@ -25,7 +30,7 @@ async def get_cart_keyboard(page_num):
         keyboard.inline_keyboard.append(
             [
                 InlineKeyboardButton(text=text.format(product["name"], cart_record["number"]),
-                                     callback_data=cart_record["id"])
+                                     callback_data=cart_record["id"]),
             ]
         )
     keyboard.inline_keyboard.append(
@@ -64,6 +69,7 @@ async def show_next_page(call: CallbackQuery, state: FSMContext):
 
 @dp.callback_query_handler(state=CartListing.CartWatching)
 async def show_product(call: CallbackQuery, state: FSMContext):
+    await call.answer(cache_time=120)
     await CartListing.ProductWatching.set()
     cart_record_id = call.data
     cart_record = await db.get_cart_record(int(cart_record_id))
@@ -94,7 +100,7 @@ async def decrease_cart_record(call: CallbackQuery, state: FSMContext):
     if cart_record["number"] <= 1:
         await state.update_data({"product_id": cart_record["product_id"]})
         await db.delete_from_cart(int(cart_record["product_id"]))
-        await call.message.edit_text("Удалено.", reply_markup=cart_record_watching)
+        await call.message.edit_text("0 шт.", reply_markup=cart_record_watching)
     else:
         new_number = cart_record["number"] - 1
         await db.change_from_cart(int(cart_record["product_id"]), new_number)
@@ -117,6 +123,18 @@ async def increase_cart_record(call: CallbackQuery, state: FSMContext):
         await db.change_from_cart(int(cart_record["product_id"]), new_number)
 
     await call.message.edit_text(number_text.format(new_number), reply_markup=cart_record_watching)
+
+
+@dp.callback_query_handler(text="delete", state=CartListing.ProductWatching)
+async def delete_cart_record(call: CallbackQuery, state: FSMContext):
+    cart_record_id = (await state.get_data()).get("cart_record_id")
+    cart_record = await db.get_cart_record(int(cart_record_id))
+    if not cart_record:
+        return
+
+    await state.update_data({"product_id": cart_record["product_id"]})
+    await db.delete_from_cart(int(cart_record["product_id"]))
+    await call.message.edit_text("0 шт.", reply_markup=cart_record_watching)
 
 
 @dp.callback_query_handler(text="cart", state=CartListing.ProductWatching)

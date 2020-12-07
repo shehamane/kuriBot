@@ -25,6 +25,7 @@ class DBCommands:
     GET_CART_LIST = "SELECT id, product_id, number FROM cart WHERE user_id = $1 OFFSET $2 LIMIT $3"
     COUNT_CART = "SELECT COUNT(*) FROM cart WHERE user_id = $1"
     GET_CART_RECORD = "SELECT product_id, number FROM cart WHERE id = $1"
+    GET_CART_RECORD_BY_PRODUCT = "SELECT id, number FROM cart WHERE user_id = $1 AND product_id = $2"
 
     async def add_new_user(self):
         user = types.User.get_current()
@@ -108,6 +109,11 @@ class DBCommands:
     async def get_cart_record(self, record_id):
         command = self.GET_CART_RECORD
         return await self.pool.fetchrow(command, record_id)
+
+    async def get_cart_record_by_product(self, product_id):
+        command = self.GET_CART_RECORD_BY_PRODUCT
+        user_id = await self.get_id()
+        return await self.pool.fetchrow(command, user_id, product_id)
 
 
 db = DBCommands()

@@ -7,6 +7,9 @@ cart_record_watching = InlineKeyboardMarkup(
             InlineKeyboardButton(text="+", callback_data="increase"),
         ],
         [
+            InlineKeyboardButton(text="Удалить", callback_data="delete"),
+        ],
+        [
             InlineKeyboardButton(text="Вернуться в корзину", callback_data="cart"),
         ],
     ]
