@@ -2,6 +2,8 @@ from aiogram import types
 from asyncpg import Connection, Record
 from asyncpg.exceptions import UniqueViolationError
 
+from data.api_config import PAGE_VOLUME
+
 from loader import db_pool
 
 
@@ -12,10 +14,14 @@ class DBCommands:
     GET_ID = "SELECT id FROM users WHERE chat_id = $1"
     CHANGE_FULLNAME = "UPDATE users SET full_name = $2 WHERE chat_id = $1"
 
+    ADD_NEW_CATEGORY = "INSERT INTO categories(name, parent_id, is_parent) VALUES ($1, $2, $3) RETURNING id"
+    GET_SUBCATEGORIES = "SELECT id, name, is_parent FROM categories WHERE parent_id=$1"
+    GET_CATEGORY = "SELECT name, parent_id, is_parent FROM categories WHERE id=$1"
+    GET_PRODUCT_BY_NUMBER = "SELECT id, name, description, price FROM products WHERE category_id=$1 OFFSET $2 LIMIT 1"
+    COUNT_CATEGORY_PRODUCTS = "SELECT COUNT(*) FROM products WHERE category_id=$1"
+
     ADD_NEW_PRODUCT = "INSERT INTO products(name, description) VALUES ($1, $2) RETURNING id"
-    REMOVE_PRODUCT_BY_NAME = "DELETE FROM products WHERE name = $1"
     REMOVE_PRODUCT = "DELETE FROM products WHERE id = $1"
-    GET_PRODUCTS_LIST = "SELECT id, name FROM products OFFSET $1 LIMIT $2"
     COUNT_PRODUCTS = "SELECT COUNT(*) FROM products"
     GET_PRODUCT = "SELECT name, description FROM products WHERE id = $1"
 
@@ -61,17 +67,13 @@ class DBCommands:
         command = self.ADD_NEW_PRODUCT
         return await self.pool.fetchval(command, name, description)
 
-    async def remove_product_by_name(self, name):
-        command = self.REMOVE_PRODUCT_BY_NAME
-        return await self.pool.execute(command, name)
-
     async def remove_product(self, product_id):
         command = self.REMOVE_PRODUCT
         return await self.pool.execute(command, product_id)
 
-    async def get_products_list(self, offset, limit):
-        command = self.GET_PRODUCTS_LIST
-        return await self.pool.fetch(command, offset, limit)
+    async def get_product_by_number(self, category_id, number):
+        command = self.GET_PRODUCT_BY_NUMBER
+        return await self.pool.fetchrow(command, category_id, number)
 
     async def count_products(self):
         command = self.COUNT_PRODUCTS
@@ -81,10 +83,10 @@ class DBCommands:
         command = self.GET_PRODUCT
         return await self.pool.fetchrow(command, product_id)
 
-    async def add_to_cart(self, product_id, number):
+    async def add_to_cart(self, product_id, amount):
         command = self.ADD_TO_CART
         user_id = await self.get_id()
-        return await self.pool.fetchval(command, user_id, product_id, number)
+        return await self.pool.fetchval(command, user_id, product_id, amount)
 
     async def change_from_cart(self, product_id, new_number):
         command = self.CHANGE_FROM_CART
@@ -96,10 +98,10 @@ class DBCommands:
         user_id = await self.get_id()
         return await self.pool.fetchval(command, user_id, product_id)
 
-    async def get_cart_list(self, offset, limit):
+    async def get_cart_list(self, page_num):
         command = self.GET_CART_LIST
         user_id = await self.get_id()
-        return await self.pool.fetch(command, user_id, offset, limit)
+        return await self.pool.fetch(command, user_id, page_num*PAGE_VOLUME, PAGE_VOLUME)
 
     async def count_cart(self):
         command = self.COUNT_CART
@@ -114,6 +116,22 @@ class DBCommands:
         command = self.GET_CART_RECORD_BY_PRODUCT
         user_id = await self.get_id()
         return await self.pool.fetchrow(command, user_id, product_id)
+
+    async def add_new_category(self, name, parent_id, is_parent):
+        command = self.ADD_NEW_CATEGORY
+        return await self.pool.fetchval(command, name, parent_id, is_parent)
+
+    async def get_subcategories(self, parent_id):
+        command = self.GET_SUBCATEGORIES
+        return await self.pool.fetch(command, parent_id)
+
+    async def get_category(self, category_id):
+        command = self.GET_CATEGORY
+        return await self.pool.fetchrow(command, category_id)
+
+    async def count_category_products(self, category_id):
+        command = self.COUNT_CATEGORY_PRODUCTS
+        return await self.pool.fetchval(command, category_id)
 
 
 db = DBCommands()

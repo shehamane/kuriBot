@@ -1,2 +1,3 @@
-from .catalog import listing_keyboard, product_watching_keyboard, return_to_catalog_button, cancel_button
-from .cart import cart_record_watching
+from .catalog import get_product_watching_kb, return_to_catalog_button, cancel_button, \
+    get_subcategories_keyboard
+from .cart import get_cart_record_watching_kb, get_cart_keyboard

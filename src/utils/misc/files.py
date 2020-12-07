@@ -9,12 +9,11 @@ async def download_product_image(product_id, image: PhotoSize):
     await image.download(dir_path + "/" + str(time.time()) + ".jpg")
 
 
-async def get_product_images(product_id):
+async def get_product_image_path(product_id):
     dir_path = "../img/products/" + str(product_id)
     if not os.path.exists(dir_path):
         return False
     else:
-        paths = []
-        for file in os.listdir(dir_path):
-            paths.append(dir_path + "/" + os.path.relpath(file))
-        return paths
+        img_path = os.listdir(dir_path)[0]
+        path = dir_path + "/" + os.path.relpath(img_path)
+        return path

@@ -1,118 +1,163 @@
-from aiogram.types import Message, CallbackQuery, InputFile, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InputFile
 from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher import FSMContext
 
+from data.media_config import IMG_CATALOG_PATH
 from filters.is_positive import IsPositiveFilter
-from utils.misc.files import get_product_images
+from keyboards.default import menu
+from utils.misc.files import get_product_image_path
 
 from loader import dp
 from utils.db_api.api import db
 
-from keyboards.inline import product_watching_keyboard, return_to_catalog_button, cancel_button
-from states import ProductSelection, AddingToCart
-
-from data.api_config import PAGE_VOLUME
+from keyboards.inline import get_subcategories_keyboard, get_product_watching_kb
+from states import CatalogListing
 
 
-async def get_catalog_keyboard(page_num):
-    products_list = await db.get_products_list(page_num * PAGE_VOLUME, PAGE_VOLUME)
+async def send_product_info(message: Message, product):
+    text = f'{product["name"]}\n' \
+           f'{product["description"]}\n' \
+           f'Цена: {product["price"]} р.'
 
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
+    img_path = await get_product_image_path(product["id"])
+    if img_path:
+        await message.edit_media(InputMediaPhoto(InputFile(img_path)))
 
-        ]
-    )
-    for product in products_list:
-        text = "id{} - {}"
-        keyboard.inline_keyboard.append(
-            [
-                InlineKeyboardButton(text=text.format(product["id"], product["name"]),
-                                     callback_data=product["id"])
-            ]
-        )
-    keyboard.inline_keyboard.append(
-        [
-            InlineKeyboardButton(text="<", callback_data="previous"),
-            InlineKeyboardButton(text="Отмена", callback_data="cancel"),
-            InlineKeyboardButton(text=">", callback_data="next")
-        ]
-    )
-    return keyboard
+    await message.edit_caption(text)
 
 
 @dp.message_handler(Text(ignore_case=True, contains=['каталог']), state='*')
-async def show_first_page(message: Message, state: FSMContext):
+async def show_catalog(message: Message, state: FSMContext):
     await state.finish()
-    text_help = "Для получения информации о товаре нажмите на него ID.\n" \
+    await CatalogListing.CategoryChoosing.set()
+
+    await state.update_data({"category_id": 1})
+
+    text_help = "Вы можете перемещаться по категориям товаров\n" \
+                "Для получения информации о товаре нажмите на него.\n" \
                 "Чтобы покинуть каталог нажмите или введите \"Отмена\".\n"
 
-    await state.update_data({"page_num": 0})
-    await message.answer(text_help, reply_markup=await get_catalog_keyboard(0))
-    await ProductSelection.Selection.set()
+    await message.answer_photo(InputFile(IMG_CATALOG_PATH), caption=text_help,
+                               reply_markup=await get_subcategories_keyboard(db, 1))
 
 
-@dp.callback_query_handler(state=ProductSelection.Selection, text="next")
-async def show_next_page(call: CallbackQuery, state: FSMContext):
-    async with state.proxy() as data:
-        if data["page_num"] < int(await db.count_products() / PAGE_VOLUME):
-            data["page_num"] += 1
-            await call.message.edit_reply_markup(await get_catalog_keyboard(data["page_num"]))
+@dp.callback_query_handler(state=[CatalogListing.CategoryChoosing, CatalogListing.ProductWatching], text="back")
+async def return_to_parent_catalog(call: CallbackQuery, state: FSMContext):
+    async with state.proxy() as state_data:
+        if state_data["category_id"] == 1:
+            await call.message.answer("Вы вернулись в меню.", reply_markup=menu)
+            await state.finish()
+            return
+        else:
+            curr_category = await db.get_category(state_data["category_id"])
+
+    await CatalogListing.CategoryChoosing.set()
+    await state.update_data({"category_id": curr_category["parent_id"]})
+
+    await call.message.edit_media(InputMediaPhoto(InputFile(IMG_CATALOG_PATH)))
+    await call.message.edit_reply_markup(await get_subcategories_keyboard(db, curr_category["parent_id"]))
 
 
-@dp.callback_query_handler(state=ProductSelection.Selection, text="previous")
-async def show_previous_page(call: CallbackQuery, state: FSMContext):
-    async with state.proxy() as data:
-        if data["page_num"] > 0:
-            data["page_num"] -= 1
-            await call.message.edit_reply_markup(await get_catalog_keyboard(data["page_num"]))
+@dp.callback_query_handler(state=CatalogListing.CategoryChoosing)
+async def show_category(call: CallbackQuery, state: FSMContext):
+    category_id = int(call.data)
+    await state.update_data({"category_id": category_id})
 
+    category = await db.get_category(category_id)
 
-@dp.callback_query_handler(state=ProductSelection.Selection)
-async def show_product(call: CallbackQuery, state: FSMContext):
-    product_id = call.data
-    await state.update_data({"product_id": product_id})
-
-    product = (await db.get_product(int(product_id)))
-    if product:
-        await ProductSelection.ProductWatching.set()
-        images = await get_product_images(int(product_id))
-        if images:
-            for path in images:
-                await call.message.answer_photo(InputFile(path))
-
-        text = f"{product['name']}\n{product['description']}"
-        await call.message.answer(text, reply_markup=product_watching_keyboard)
+    if category["is_parent"]:
+        await call.message.edit_reply_markup(await get_subcategories_keyboard(db, category_id))
     else:
-        await call.message.answer("Товара с таким ID не существует. (\"Отмена\" для выхода из каталога)")
+        await CatalogListing.ProductWatching.set()
+        await state.update_data({"product_number": 0, "product_amount": 1})
+
+        product = await db.get_product_by_number(category_id, 0)
+        await state.update_data({"product_id": product["id"]})
+
+        await send_product_info(call.message, product)
+        await call.message.edit_reply_markup(
+            await get_product_watching_kb(1, await db.count_category_products(category_id), 1))
 
 
-@dp.callback_query_handler(state=[ProductSelection.ProductWatching, AddingToCart.NumberRequest], text="catalog")
-async def show_catalog(call: CallbackQuery, state: FSMContext):
-    await call.answer(cache_time=120)
-    await ProductSelection.Selection.set()
-    text_help = "Для получения информации о товаре нажмите на него.\n" \
-                "Чтобы покинуть каталог нажмите или введите \"Отмена\".\n"
-
-    await state.update_data({"page_num": 0})
-    await call.message.answer(text_help, reply_markup=await get_catalog_keyboard(0))
-    await ProductSelection.Selection.set()
+#               КНОПКИ ПРОСМОТРА ТОВАРА
 
 
-@dp.callback_query_handler(state=ProductSelection.ProductWatching, text="add_to_cart")
-async def add_to_cart(call: CallbackQuery):
-    await AddingToCart.NumberRequest.set()
-    await call.answer(cache_time=120)
-    await call.message.answer("Введите количество товара: ", reply_markup=cancel_button)
+@dp.callback_query_handler(state=CatalogListing.ProductWatching, text="next")
+async def show_next_product(call: CallbackQuery, state: FSMContext):
+    async with state.proxy() as state_data:
+        state_data["product_amount"] = 1
+
+        products_number = await db.count_category_products(state_data["category_id"])
+        state_data["product_number"] = (state_data["product_number"] + 1) % products_number
+
+        next_product = await db.get_product_by_number(state_data["category_id"],
+                                                      state_data["product_number"])
+
+        state_data["product_id"] = next_product["id"]
+
+        await send_product_info(call.message, next_product)
+        await call.message.edit_reply_markup(await get_product_watching_kb(state_data["product_number"] + 1,
+                                                                           await db.count_category_products(
+                                                                               state_data["category_id"]), 1))
 
 
-@dp.message_handler(IsPositiveFilter(), state=AddingToCart.NumberRequest)
-async def get_number(message: Message, state: FSMContext):
-    number = int(message.text)
-    product_id = int((await state.get_data()).get("product_id"))
+@dp.callback_query_handler(state=CatalogListing.ProductWatching, text="previous")
+async def show_next_product(call: CallbackQuery, state: FSMContext):
+    async with state.proxy() as state_data:
+        state_data["product_amount"] = 1
 
-    cart_record = await db.get_cart_record_by_product(product_id)
-    if not cart_record:
-        await db.add_to_cart(product_id, number)
-    else:
-        await db.change_from_cart(product_id, number + cart_record["number"])
-    await message.answer("Товар добавлен в корзину!", reply_markup=return_to_catalog_button)
+        products_number = await db.count_category_products(state_data["category_id"])
+        state_data["product_number"] -= 1
+        if state_data["product_number"] == -1:
+            state_data["product_number"] += products_number
+
+        next_product = await db.get_product_by_number(state_data["category_id"],
+                                                      state_data["product_number"])
+        state_data["product_id"] = next_product["id"]
+
+        await send_product_info(call.message, next_product)
+        await call.message.edit_reply_markup(await get_product_watching_kb(state_data["product_number"] + 1,
+                                                                           products_number, 1))
+
+
+@dp.callback_query_handler(state=CatalogListing.ProductWatching, text="increase")
+async def increase_product_amount(call: CallbackQuery, state: FSMContext):
+    async with state.proxy() as state_data:
+        state_data["product_amount"] += 1
+
+        products_number = await db.count_category_products(state_data["category_id"])
+        await call.message.edit_reply_markup(await get_product_watching_kb(state_data["product_number"] + 1,
+                                                                           products_number,
+                                                                           state_data["product_amount"]))
+
+
+@dp.callback_query_handler(state=CatalogListing.ProductWatching, text="decrease")
+async def increase_product_amount(call: CallbackQuery, state: FSMContext):
+    async with state.proxy() as state_data:
+        if state_data["product_amount"] == 1:
+            return
+        state_data["product_amount"] -= 1
+
+        products_number = await db.count_category_products(state_data["category_id"])
+        await call.message.edit_reply_markup(await get_product_watching_kb(state_data["product_number"] + 1,
+                                                                           products_number,
+                                                                           state_data["product_amount"]))
+
+
+@dp.callback_query_handler(state=CatalogListing.ProductWatching, text="add_to_cart")
+async def add_to_cart(call: CallbackQuery, state: FSMContext):
+    async with state.proxy() as state_data:
+        cart_record = await db.get_cart_record_by_product(state_data["product_id"])
+
+        if not cart_record:
+            await db.add_to_cart(state_data["product_id"], state_data["product_amount"])
+        else:
+            await db.change_from_cart(state_data["product_id"],
+                                      cart_record["number"] + state_data["product_amount"])
+
+    products_number = await db.count_category_products(state_data["category_id"])
+
+    await call.message.edit_caption(call.message.caption + "\n Товар добавлен в корзину!",
+                                    reply_markup=await get_product_watching_kb(state_data["product_number"] + 1,
+                                                                               products_number,
+                                                                               state_data["product_amount"]))
