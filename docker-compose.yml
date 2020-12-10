@@ -6,7 +6,7 @@ services:
     image: postgres
     restart: always
     environment:
-      POSTGRES_USER: kurilab
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 048596
       POSTGRES_DB: kuribot_db
     ports:
