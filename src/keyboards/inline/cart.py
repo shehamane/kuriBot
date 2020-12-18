@@ -22,6 +22,7 @@ async def get_cart_record_watching_kb(amount):
 
 async def get_cart_keyboard(db, page_num):
     cart_list = await db.get_cart_list(page_num)
+    to_pay = 0
 
     if len(cart_list) == 0 and page_num > 0:
         page_num -= 1
@@ -34,18 +35,27 @@ async def get_cart_keyboard(db, page_num):
     )
     for cart_record in cart_list:
         product = await db.get_product(cart_record["product_id"])
-        text = "{} - {} шт."
+        to_pay += cart_record['amount'] * product['price']
+
         keyboard.inline_keyboard.append(
             [
-                InlineKeyboardButton(text=text.format(product["name"], cart_record["number"]),
-                                     callback_data=cart_record["id"]),
+                InlineKeyboardButton(text=f"{product['name']} - {cart_record['amount']} шт.",
+                                     callback_data=str(cart_record["id"])),
+                InlineKeyboardButton(text=f"{cart_record['amount'] * product['price']} р.", callback_data="amount")
             ]
         )
+
     keyboard.inline_keyboard.append(
         [
             InlineKeyboardButton(text="<", callback_data="previous"),
             InlineKeyboardButton(text="Отмена", callback_data="cancel"),
             InlineKeyboardButton(text=">", callback_data="next")
+        ]
+    )
+    keyboard.inline_keyboard.append(
+        [
+            InlineKeyboardButton(text=f"Итого: {to_pay} р.", callback_data="to_pay"),
+            InlineKeyboardButton(text=f"Оформить заказ", callback_data="checkout")
         ]
     )
     return keyboard

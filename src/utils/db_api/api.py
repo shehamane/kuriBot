@@ -16,22 +16,22 @@ class DBCommands:
 
     ADD_NEW_CATEGORY = "INSERT INTO categories(name, parent_id, is_parent) VALUES ($1, $2, $3) RETURNING id"
     GET_SUBCATEGORIES = "SELECT id, name, is_parent FROM categories WHERE parent_id=$1"
-    GET_CATEGORY = "SELECT name, parent_id, is_parent FROM categories WHERE id=$1"
+    GET_CATEGORY = "SELECT name, parent_id, is_parent, products_number FROM categories_info WHERE id=$1"
     GET_PRODUCT_BY_NUMBER = "SELECT id, name, description, price FROM products WHERE category_id=$1 OFFSET $2 LIMIT 1"
     COUNT_CATEGORY_PRODUCTS = "SELECT COUNT(*) FROM products WHERE category_id=$1"
 
     ADD_NEW_PRODUCT = "INSERT INTO products(name, description) VALUES ($1, $2) RETURNING id"
     REMOVE_PRODUCT = "DELETE FROM products WHERE id = $1"
     COUNT_PRODUCTS = "SELECT COUNT(*) FROM products"
-    GET_PRODUCT = "SELECT name, description FROM products WHERE id = $1"
+    GET_PRODUCT = "SELECT name, description, price FROM products WHERE id = $1"
 
-    ADD_TO_CART = "INSERT INTO cart(user_id, product_id, number) VALUES  ($1, $2, $3) RETURNING id"
-    CHANGE_FROM_CART = "UPDATE cart SET number=$3 WHERE user_id = $1 AND product_id = $2"
+    ADD_TO_CART = "INSERT INTO cart(user_id, product_id, amount) VALUES  ($1, $2, $3) RETURNING id"
+    CHANGE_FROM_CART = "UPDATE cart SET amount=$3 WHERE user_id = $1 AND product_id = $2"
     DELETE_FROM_CART = "DELETE FROM cart WHERE user_id = $1 AND product_id = $2"
-    GET_CART_LIST = "SELECT id, product_id, number FROM cart WHERE user_id = $1 OFFSET $2 LIMIT $3"
+    GET_CART_LIST = "SELECT id, product_id, amount FROM cart WHERE user_id = $1 OFFSET $2 LIMIT $3"
     COUNT_CART = "SELECT COUNT(*) FROM cart WHERE user_id = $1"
-    GET_CART_RECORD = "SELECT product_id, number FROM cart WHERE id = $1"
-    GET_CART_RECORD_BY_PRODUCT = "SELECT id, number FROM cart WHERE user_id = $1 AND product_id = $2"
+    GET_CART_RECORD = "SELECT product_id, amount FROM cart WHERE id = $1"
+    GET_CART_RECORD_BY_PRODUCT = "SELECT id, amount FROM cart WHERE user_id = $1 AND product_id = $2"
 
     async def add_new_user(self):
         user = types.User.get_current()
@@ -88,10 +88,10 @@ class DBCommands:
         user_id = await self.get_id()
         return await self.pool.fetchval(command, user_id, product_id, amount)
 
-    async def change_from_cart(self, product_id, new_number):
+    async def change_from_cart(self, product_id, new_amount):
         command = self.CHANGE_FROM_CART
         user_id = await self.get_id()
-        return await self.pool.fetchval(command, user_id, product_id, new_number)
+        return await self.pool.fetchval(command, user_id, product_id, new_amount)
 
     async def delete_from_cart(self, product_id):
         command = self.DELETE_FROM_CART

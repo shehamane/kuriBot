@@ -3,7 +3,6 @@ from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher import FSMContext
 
 from data.media_config import IMG_CATALOG_PATH
-from filters.is_positive import IsPositiveFilter
 from keyboards.default import menu
 from utils.misc.files import get_product_image_path
 
@@ -153,7 +152,7 @@ async def add_to_cart(call: CallbackQuery, state: FSMContext):
             await db.add_to_cart(state_data["product_id"], state_data["product_amount"])
         else:
             await db.change_from_cart(state_data["product_id"],
-                                      cart_record["number"] + state_data["product_amount"])
+                                      cart_record["amount"] + state_data["product_amount"])
 
     products_number = await db.count_category_products(state_data["category_id"])
 
