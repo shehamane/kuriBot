@@ -9,6 +9,8 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 048596
       POSTGRES_DB: kuribot_db
+    volumes:
+      - ./database:/var/lib/postgresql/data
     ports:
       - 5432:5432
 
