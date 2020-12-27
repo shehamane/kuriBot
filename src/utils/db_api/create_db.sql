@@ -64,7 +64,7 @@ create table if not exists cart
         REFERENCES users (id),
     product_id int    not null
         REFERENCES products (id),
-    number     int    not null
+    amount     int    not null
 );
 
 alter table cart
