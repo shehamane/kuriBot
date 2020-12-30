@@ -13,7 +13,8 @@ storage = MemoryStorage()
 dp = Dispatcher(bot, storage=storage)
 
 from asyncio import get_event_loop
-from utils.db_api.sql import create_pool
+from utils.db_api.db_conn import create_db
 
 loop = get_event_loop()
-db_pool = loop.run_until_complete(create_pool())
+db_pool = loop.run_until_complete(create_db())
+
