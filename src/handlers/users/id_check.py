@@ -2,7 +2,7 @@ from aiogram.types import Message
 
 from filters.is_user import IsUserFilter
 from loader import dp
-from utils.db_api.api import db
+from utils.db_api.new_api import db_api as db
 
 
 @dp.message_handler(IsUserFilter())

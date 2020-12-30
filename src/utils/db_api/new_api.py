@@ -70,7 +70,6 @@ class DBCommands:
         return new_user
 
     async def get_id(self):
-        command = "SELECT id FROM users WHERE chat_id = $1"
         user_id = types.User.get_current().id
         id = (await self.get_user_by_chat_id(user_id)).id
         return id
