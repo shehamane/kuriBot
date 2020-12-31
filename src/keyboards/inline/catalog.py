@@ -1,6 +1,6 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-from utils.db_api.new_api import Category
+from utils.db_api.api import Category
 
 
 async def get_product_watching_kb(page, total, amount):

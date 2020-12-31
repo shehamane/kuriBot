@@ -2,7 +2,7 @@ from aiogram import types
 from aiogram.dispatcher.filters.builtin import CommandStart
 
 from loader import dp
-from utils.db_api.new_api import db_api as db
+from utils.db_api.api import db_api as db
 
 
 @dp.message_handler(CommandStart())

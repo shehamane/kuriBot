@@ -7,7 +7,7 @@ from keyboards.default import menu
 from utils.misc.files import get_product_image_path
 
 from loader import dp
-from utils.db_api.new_api import db_api as db
+from utils.db_api.api import db_api as db
 
 from keyboards.inline import get_subcategories_keyboard, get_product_watching_kb
 from states import CatalogListing

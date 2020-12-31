@@ -7,7 +7,7 @@ from keyboards.inline import get_cart_record_watching_kb, get_cart_keyboard
 from states import CartListing
 
 from loader import dp
-from utils.db_api.new_api import db_api as db
+from utils.db_api.api import db_api as db
 
 from data.api_config import PAGE_VOLUME
 from data.media_config import IMG_CART_PATH

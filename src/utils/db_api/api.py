@@ -71,8 +71,10 @@ class DBCommands:
 
     async def get_id(self):
         user_id = types.User.get_current().id
-        id = (await self.get_user_by_chat_id(user_id)).id
-        return id
+        user = await self.get_user_by_chat_id(user_id)
+        if not user:
+            return None
+        return user.id
 
     async def get_user(self, user_id):
         user = await User.get(user_id)
@@ -125,12 +127,10 @@ class DBCommands:
         return cart_record
 
     async def change_cart_record(self, product_id, new_amount):
-        user_id = (await self.get_user_by_chat_id(types.User.get_current().id)).id
         cart_record = await self.get_cart_record_by_info(product_id)
         await cart_record.update(amount=new_amount).apply()
 
     async def delete_cart_record(self, product_id):
-        user_id = (await self.get_user_by_chat_id(types.User.get_current().id)).id
         cart_record = await self.get_cart_record_by_info(product_id)
         await cart_record.delete()
 
@@ -147,3 +147,5 @@ class DBCommands:
 
 
 db_api = DBCommands()
+
+

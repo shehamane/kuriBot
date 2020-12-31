@@ -1,5 +1,5 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from utils.db_api.new_api import db_api as db
+from utils.db_api.api import db_api as db
 
 async def get_cart_record_watching_kb(amount):
     return InlineKeyboardMarkup(
