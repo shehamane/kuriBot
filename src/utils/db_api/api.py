@@ -1,7 +1,7 @@
 from aiogram import types
 from gino import Gino
 from gino.schema import GinoSchemaVisitor
-from sqlalchemy import Column, Sequence, BigInteger, String, sql, Integer, Text, Boolean
+from sqlalchemy import Column, Sequence, BigInteger, String, sql, Integer, Text, Boolean, and_
 
 from data.api_config import PAGE_VOLUME
 from data.config import PG_USER, PG_PASS, PG_HOST
@@ -114,8 +114,8 @@ class DBCommands:
 
     async def get_cart_record_by_info(self, product_id):
         user_id = (await self.get_user_by_chat_id(types.User.get_current().id)).id
-        cart_record = await CartRecord.query.where(
-            CartRecord.user_id == user_id and CartRecord.product_id == product_id).gino.first()
+        cart_record = await CartRecord.query.where(and_(
+            CartRecord.user_id == user_id, CartRecord.product_id == product_id)).gino.first()
         return cart_record
 
     async def add_cart_record(self, product_id, amount):
@@ -147,5 +147,3 @@ class DBCommands:
 
 
 db_api = DBCommands()
-
-
