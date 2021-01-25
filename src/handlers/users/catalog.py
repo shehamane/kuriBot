@@ -2,15 +2,15 @@ from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InputFile
 from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher import FSMContext
 
-from data.media_config import IMG_CATALOG_PATH
+from keyboards.inline import get_subcategories_keyboard, get_product_watching_kb
+from states import CatalogListing
 from keyboards.default import menu
 from utils.misc.files import get_product_image_path
 
+from data.media_config import IMG_CATALOG_PATH
+
 from loader import dp
 from utils.db_api.api import db_api as db
-
-from keyboards.inline import get_subcategories_keyboard, get_product_watching_kb
-from states import CatalogListing
 
 
 async def send_product_info(message: Message, product):
@@ -91,7 +91,7 @@ async def show_next_product(call: CallbackQuery, state: FSMContext):
         state_data["product_number"] = (state_data["product_number"] + 1) % products_number
 
         next_product = await db.get_product_by_page(state_data["category_id"],
-                                                      state_data["product_number"])
+                                                    state_data["product_number"])
 
         state_data["product_id"] = next_product.id
 
@@ -112,7 +112,7 @@ async def show_previous_product(call: CallbackQuery, state: FSMContext):
             state_data["product_number"] += products_number
 
         next_product = await db.get_product_by_page(state_data["category_id"],
-                                                      state_data["product_number"])
+                                                    state_data["product_number"])
         state_data["product_id"] = next_product.id
 
         await send_product_info(call.message, next_product)
@@ -153,7 +153,7 @@ async def add_to_cart(call: CallbackQuery, state: FSMContext):
             await db.add_cart_record(state_data["product_id"], state_data["product_amount"])
         else:
             await db.change_cart_record(state_data["product_id"],
-                                      cart_record.amount + state_data["product_amount"])
+                                        cart_record.amount + state_data["product_amount"])
 
     products_number = await db.count_category_products(state_data["category_id"])
 

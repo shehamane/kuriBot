@@ -1,10 +1,8 @@
 from aiogram import types
 from gino import Gino
-from gino.schema import GinoSchemaVisitor
 from sqlalchemy import Column, Sequence, BigInteger, String, sql, Integer, Text, Boolean, and_
 
-from data.api_config import PAGE_VOLUME
-from data.config import PG_USER, PG_PASS, PG_HOST
+from data.api_config import CART_PAGE_VOLUME, USERS_PAGE_VOLUME
 
 db = Gino()
 
@@ -88,6 +86,14 @@ class DBCommands:
         user: User = await User.query.where(User.user_id == chat_id).gino.first()
         return user
 
+    async def get_user_by_username(self, username):
+        user = await User.query.where(User.username == username).gino.first()
+        return user
+
+    async def get_users_list(self, page_num):
+        users_list = await User.query.order_by(User.username).limit(USERS_PAGE_VOLUME).offset(page_num * USERS_PAGE_VOLUME).gino.all()
+        return users_list
+
     async def get_category(self, category_id):
         category = await Category.get(category_id)
         return category
@@ -136,14 +142,18 @@ class DBCommands:
 
     async def get_cart_page(self, page_num):
         user_id = (await self.get_user_by_chat_id(types.User.get_current().id)).id
-        cart_page = await CartRecord.query.where(CartRecord.user_id == user_id).limit(PAGE_VOLUME).offset(
-            page_num * PAGE_VOLUME).gino.all()
+        cart_page = await CartRecord.query.where(CartRecord.user_id == user_id).limit(CART_PAGE_VOLUME).offset(
+            page_num * CART_PAGE_VOLUME).gino.all()
         return cart_page
 
     async def count_cart(self):
         user_id = (await self.get_user_by_chat_id(types.User.get_current().id)).id
         number = await db.select([db.func.count(CartRecord.id)]).where(CartRecord.user_id == user_id).gino.scalar()
         return number
+
+    async def get_cart_by_id(self, user_id):
+        cart = await CartRecord.query.where(CartRecord.user_id == user_id).gino.all()
+        return cart
 
 
 db_api = DBCommands()
