@@ -1,7 +1,5 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-from utils.db_api.api import Category
-
 
 async def get_product_watching_kb(page, total, amount):
     return InlineKeyboardMarkup(
@@ -45,11 +43,8 @@ cancel_button = InlineKeyboardMarkup(
 
 
 async def get_subcategories_keyboard(subcategories):
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[])
 
-        ]
-    )
     for subcategory in subcategories:
         keyboard.inline_keyboard.append(
             [

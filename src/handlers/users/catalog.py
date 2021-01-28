@@ -3,7 +3,7 @@ from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher import FSMContext
 
 from keyboards.inline import get_subcategories_keyboard, get_product_watching_kb
-from states import CatalogListing
+from states import CatalogListing, CatalogEdit
 from keyboards.default import menu
 from utils.misc.files import get_product_image_path
 
@@ -40,7 +40,8 @@ async def show_catalog(message: Message, state: FSMContext):
                                reply_markup=await get_subcategories_keyboard(await db.get_subcategories(1)))
 
 
-@dp.callback_query_handler(state=[CatalogListing.CategoryChoosing, CatalogListing.ProductWatching], text="back")
+@dp.callback_query_handler(
+    state=[CatalogListing.CategoryChoosing, CatalogListing.ProductWatching], text="back")
 async def return_to_parent_catalog(call: CallbackQuery, state: FSMContext):
     async with state.proxy() as state_data:
         if state_data["category_id"] == 1:

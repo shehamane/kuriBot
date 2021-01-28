@@ -20,6 +20,10 @@ async def get_users_list_kb(page_list, page, total):
                 InlineKeyboardButton(text="<", callback_data="previous"),
                 InlineKeyboardButton(text=f"{page}/{total}", callback_data="page"),
                 InlineKeyboardButton(text=">", callback_data="next")
+            ])
+        kb.inline_keyboard.append(
+            [
+                InlineKeyboardButton(text="Отмена", callback_data="cancel"),
             ]
         )
 

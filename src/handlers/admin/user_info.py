@@ -5,12 +5,13 @@ from aiogram.types import Message, CallbackQuery
 from data.api_config import USERS_PAGE_VOLUME
 from filters.is_numeric import IsNumericFilterCallback, IsNumericFilter
 from keyboards.inline import get_users_list_kb, user_info_kb
+from states import UserInfo, AdminPanel
+
 from loader import dp
-from states import UserInfo
 from utils.db_api.api import db_api as db
 
 
-@dp.message_handler(Text(ignore_case=True, contains=['пользователи']), state='*')
+@dp.message_handler(Text(ignore_case=True, contains=['пользователи']), state=AdminPanel.AdminPanel)
 async def show_users_list(message: Message, state: FSMContext):
     await state.finish()
     await UserInfo.UsersList.set()

@@ -2,7 +2,7 @@ from aiogram import types
 from gino import Gino
 from sqlalchemy import Column, Sequence, BigInteger, String, sql, Integer, Text, Boolean, and_
 
-from data.api_config import CART_PAGE_VOLUME, USERS_PAGE_VOLUME
+from data.api_config import CART_PAGE_VOLUME, USERS_PAGE_VOLUME, PRODUCTS_PAGE_VOLUME
 
 db = Gino()
 
@@ -91,7 +91,8 @@ class DBCommands:
         return user
 
     async def get_users_list(self, page_num):
-        users_list = await User.query.order_by(User.username).limit(USERS_PAGE_VOLUME).offset(page_num * USERS_PAGE_VOLUME).gino.all()
+        users_list = await User.query.order_by(User.username).limit(USERS_PAGE_VOLUME).offset(
+            page_num * USERS_PAGE_VOLUME).gino.all()
         return users_list
 
     async def get_category(self, category_id):
@@ -106,9 +107,21 @@ class DBCommands:
         product = await Product.query.where(Product.category_id == parent_id).limit(1).offset(page_num).gino.first()
         return product
 
+    async def get_products_by_page(self, parent_id, page_num):
+        products = await Product.query.where(Product.category_id == parent_id).limit(PRODUCTS_PAGE_VOLUME).offset(
+            page_num * PRODUCTS_PAGE_VOLUME).gino.all()
+        return products
+
     async def count_category_products(self, category_id):
         number = await db.select([db.func.count(Product.id)]).where(Product.category_id == category_id).gino.scalar()
         return number
+
+    async def create_category(self, category_name, parent_id):
+        category = Category()
+        category.name = category_name
+        category.parent_id = parent_id
+        await category.create()
+        return category
 
     async def get_product(self, product_id):
         product = await Product.get(product_id)
