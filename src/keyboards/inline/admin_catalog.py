@@ -28,12 +28,6 @@ async def get_admin_subcategories_kb(subcategories):
 async def get_admin_products_kb(products, page, total):
     kb = InlineKeyboardMarkup(inline_keyboard=[])
 
-    kb.inline_keyboard.append(
-        [
-            InlineKeyboardButton(text="+", callback_data="new"),
-        ]
-    )
-
     for product in products:
         kb.inline_keyboard.append(
             [
@@ -41,6 +35,17 @@ async def get_admin_products_kb(products, page, total):
             ]
         )
 
+    kb.inline_keyboard.append(
+        [
+            InlineKeyboardButton(text="+", callback_data="new"),
+        ]
+    )
+
+    kb.inline_keyboard.append(
+        [
+            InlineKeyboardButton(text="Удалить категорию", callback_data="delete")
+        ]
+    )
     kb.inline_keyboard.append(
         [
             InlineKeyboardButton(text="<", callback_data="previous"),
