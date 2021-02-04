@@ -7,7 +7,7 @@ from loader import dp
 from states import AdminPanel
 
 
-@dp.message_handler(Command("admin"))
+@dp.message_handler(Command("admin"), state='*')
 async def show_admin_panel(message: Message, state: FSMContext):
     await state.finish()
     await AdminPanel.AdminPanel.set()

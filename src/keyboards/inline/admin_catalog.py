@@ -1,9 +1,9 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from .catalog import get_subcategories_keyboard
+from .catalog import get_subcategories_kb
 
 
 async def get_admin_subcategories_kb(subcategories):
-    kb = await get_subcategories_keyboard(subcategories)
+    kb = await get_subcategories_kb(subcategories)
     kb.inline_keyboard.pop()
     kb.inline_keyboard.append(
         [
