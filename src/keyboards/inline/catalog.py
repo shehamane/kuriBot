@@ -44,7 +44,7 @@ cancel_button = InlineKeyboardMarkup(
 )
 
 
-async def get_subcategories_keyboard(subcategories):
+async def get_subcategories_kb(subcategories):
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
 

@@ -21,7 +21,7 @@ async def get_cart_record_watching_kb(amount):
 )
 
 
-async def get_cart_keyboard(page_list):
+async def get_cart_kb(page_list):
     to_pay = 0
 
     # if len(page_list) == 0 and page_num > 0:
