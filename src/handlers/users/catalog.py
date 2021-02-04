@@ -2,10 +2,10 @@ from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InputFile
 from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher import FSMContext
 
-from keyboards.inline import get_subcategories_keyboard, get_product_watching_kb
-from states import CatalogListing, CatalogEdit
-from keyboards.default import menu
+from keyboards.default import main_menu_kb
 from utils.misc.files import get_product_image_path
+from keyboards.inline import get_subcategories_kb, get_product_watching_kb
+from states import CatalogListing
 
 from data.media_config import IMG_CATALOG_PATH
 
@@ -37,26 +37,26 @@ async def show_catalog(message: Message, state: FSMContext):
                 "Чтобы покинуть каталог нажмите или введите \"Отмена\".\n"
 
     await message.answer_photo(InputFile(IMG_CATALOG_PATH), caption=text_help,
-                               reply_markup=await get_subcategories_keyboard(await db.get_subcategories(1)))
+                               reply_markup=await get_subcategories_kb(await db.get_subcategories(1)))
 
 
-@dp.callback_query_handler(
-    state=[CatalogListing.CategoryChoosing, CatalogListing.ProductWatching], text="back")
-async def return_to_parent_catalog(call: CallbackQuery, state: FSMContext):
+@dp.callback_query_handler(state=[CatalogListing.CategoryChoosing, CatalogListing.ProductWatching], text="back")
+async def return_to_parent_category(call: CallbackQuery, state: FSMContext):
     async with state.proxy() as state_data:
         if state_data["category_id"] == 1:
-            await call.message.answer("Вы вернулись в меню.", reply_markup=menu)
+            await call.message.answer("Вы покинули каталог.", reply_markup=main_menu_kb)
             await state.finish()
             return
         else:
             curr_category = await db.get_category(state_data["category_id"])
 
-    await CatalogListing.CategoryChoosing.set()
-    await state.update_data({"category_id": curr_category.parent_id})
+    if not curr_category.is_parent:
+        await CatalogListing.CategoryChoosing.set()
+        await call.message.edit_media(InputMediaPhoto(InputFile(IMG_CATALOG_PATH)))
 
-    await call.message.edit_media(InputMediaPhoto(InputFile(IMG_CATALOG_PATH)))
+    await state.update_data({"category_id": curr_category.parent_id})
     await call.message.edit_reply_markup(
-        await get_subcategories_keyboard(await db.get_subcategories(curr_category.parent_id)))
+        await get_subcategories_kb(await db.get_subcategories(curr_category.parent_id)))
 
 
 @dp.callback_query_handler(state=CatalogListing.CategoryChoosing)
@@ -67,10 +67,12 @@ async def show_category(call: CallbackQuery, state: FSMContext):
     category = await db.get_category(category_id)
 
     if category.is_parent:
-        await call.message.edit_reply_markup(await get_subcategories_keyboard(await db.get_subcategories(category_id)))
+        await call.message.edit_reply_markup(await get_subcategories_kb(await db.get_subcategories(category_id)))
     else:
         await CatalogListing.ProductWatching.set()
-        await state.update_data({"product_number": 0, "product_amount": 1})
+
+        products_total = await db.count_category_products((await state.get_data())["category_id"])
+        await state.update_data({"product_number": 0, "product_amount": 1, "products_total": products_total})
 
         product = await db.get_product_by_page(category_id, 0)
         await state.update_data({"product_id": product.id})
@@ -88,8 +90,8 @@ async def show_next_product(call: CallbackQuery, state: FSMContext):
     async with state.proxy() as state_data:
         state_data["product_amount"] = 1
 
-        products_number = await db.count_category_products(state_data["category_id"])
-        state_data["product_number"] = (state_data["product_number"] + 1) % products_number
+        products_total = state_data["products_total"]
+        state_data["product_number"] = (state_data["product_number"] + 1) % products_total
 
         next_product = await db.get_product_by_page(state_data["category_id"],
                                                     state_data["product_number"])
@@ -98,8 +100,7 @@ async def show_next_product(call: CallbackQuery, state: FSMContext):
 
         await send_product_info(call.message, next_product)
         await call.message.edit_reply_markup(await get_product_watching_kb(state_data["product_number"] + 1,
-                                                                           await db.count_category_products(
-                                                                               state_data["category_id"]), 1))
+                                                                           products_total, 1))
 
 
 @dp.callback_query_handler(state=CatalogListing.ProductWatching, text="previous")
@@ -107,18 +108,18 @@ async def show_previous_product(call: CallbackQuery, state: FSMContext):
     async with state.proxy() as state_data:
         state_data["product_amount"] = 1
 
-        products_number = await db.count_category_products(state_data["category_id"])
+        products_total = state_data["products_total"]
         state_data["product_number"] -= 1
         if state_data["product_number"] == -1:
-            state_data["product_number"] += products_number
+            state_data["product_number"] += products_total
 
-        next_product = await db.get_product_by_page(state_data["category_id"],
+    previous_product = await db.get_product_by_page(state_data["category_id"],
                                                     state_data["product_number"])
-        state_data["product_id"] = next_product.id
+    state_data["product_id"] = previous_product.id
 
-        await send_product_info(call.message, next_product)
-        await call.message.edit_reply_markup(await get_product_watching_kb(state_data["product_number"] + 1,
-                                                                           products_number, 1))
+    await send_product_info(call.message, previous_product)
+    await call.message.edit_reply_markup(await get_product_watching_kb(state_data["product_number"] + 1,
+                                                                       products_total, 1))
 
 
 @dp.callback_query_handler(state=CatalogListing.ProductWatching, text="increase")
@@ -126,9 +127,9 @@ async def increase_product_amount(call: CallbackQuery, state: FSMContext):
     async with state.proxy() as state_data:
         state_data["product_amount"] += 1
 
-        products_number = await db.count_category_products(state_data["category_id"])
+        products_total = state_data["products_total"]
         await call.message.edit_reply_markup(await get_product_watching_kb(state_data["product_number"] + 1,
-                                                                           products_number,
+                                                                           products_total,
                                                                            state_data["product_amount"]))
 
 
@@ -139,9 +140,9 @@ async def increase_product_amount(call: CallbackQuery, state: FSMContext):
             return
         state_data["product_amount"] -= 1
 
-        products_number = await db.count_category_products(state_data["category_id"])
+        products_total = state_data["products_total"]
         await call.message.edit_reply_markup(await get_product_watching_kb(state_data["product_number"] + 1,
-                                                                           products_number,
+                                                                           products_total,
                                                                            state_data["product_amount"]))
 
 
@@ -156,9 +157,9 @@ async def add_to_cart(call: CallbackQuery, state: FSMContext):
             await db.change_cart_record(state_data["product_id"],
                                         cart_record.amount + state_data["product_amount"])
 
-    products_number = await db.count_category_products(state_data["category_id"])
+    products_total = state_data["products_total"]
 
     await call.message.edit_caption(call.message.caption + "\n Товар добавлен в корзину!",
                                     reply_markup=await get_product_watching_kb(state_data["product_number"] + 1,
-                                                                               products_number,
+                                                                               products_total,
                                                                                state_data["product_amount"]))

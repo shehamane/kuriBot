@@ -3,7 +3,8 @@ from aiogram.dispatcher.filters import Text
 from aiogram.types import Message, CallbackQuery, InputFile, InputMediaPhoto
 
 from filters.is_numeric import IsNumericFilterCallback
-from keyboards.inline import get_cart_record_watching_kb, get_cart_keyboard
+from keyboards.inline import get_cart_record_watching_kb, get_cart_kb
+from utils.misc.files import get_product_image_path
 from states import CartListing
 
 from loader import dp
@@ -11,7 +12,6 @@ from utils.db_api.api import db_api as db
 
 from data.api_config import CART_PAGE_VOLUME
 from data.media_config import IMG_CART_PATH
-from utils.misc.files import get_product_image_path
 
 
 @dp.message_handler(Text(contains=['корзина'], ignore_case=True), state='*')
@@ -22,7 +22,7 @@ async def show_cart(message: Message, state: FSMContext):
     await state.update_data({"page_num": 0})
 
     await message.answer_photo(InputFile(IMG_CART_PATH), caption="Ваша корзина: ",
-                               reply_markup=await get_cart_keyboard(await db.get_cart_page(0)))
+                               reply_markup=await get_cart_kb(await db.get_cart_page(0)))
 
 
 @dp.callback_query_handler(text="next", state=CartListing.CartWatching)
@@ -30,7 +30,7 @@ async def show_next_page(call: CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
         if data["page_num"] < int(await db.count_cart() / (CART_PAGE_VOLUME + 1)):
             data["page_num"] += 1
-            await call.message.edit_reply_markup(await get_cart_keyboard(await db.get_cart_page(data["page_num"])))
+            await call.message.edit_reply_markup(await get_cart_kb(await db.get_cart_page(data["page_num"])))
 
 
 @dp.callback_query_handler(text="previous", state=CartListing.CartWatching)
@@ -38,7 +38,7 @@ async def show_previous_page(call: CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
         if data["page_num"] > 0:
             data["page_num"] -= 1
-            await call.message.edit_reply_markup(await get_cart_keyboard(await db.get_cart_page(data["page_num"])))
+            await call.message.edit_reply_markup(await get_cart_kb(await db.get_cart_page(data["page_num"])))
 
 
 @dp.callback_query_handler(IsNumericFilterCallback(), state=CartListing.CartWatching)
@@ -118,4 +118,4 @@ async def show_cart(call: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     await call.message.edit_media(InputMediaPhoto(InputFile(IMG_CART_PATH)))
     await call.message.edit_caption(caption="Ваша корзина: ",
-                                    reply_markup=await get_cart_keyboard(await db.get_cart_page(data["page_num"])))
+                                    reply_markup=await get_cart_kb(await db.get_cart_page(data["page_num"])))

@@ -1,6 +1,6 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
-menu = ReplyKeyboardMarkup([
+main_menu_kb = ReplyKeyboardMarkup([
     [
         KeyboardButton(text='оформить заказ'),
     ],
