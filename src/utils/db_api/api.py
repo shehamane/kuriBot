@@ -103,6 +103,22 @@ class DBCommands:
         categories = await Category.query.where(Category.parent_id == parent_id).gino.all()
         return categories
 
+    async def create_category(self, category_name, parent_id):
+        category = Category()
+        category.name = category_name
+        category.parent_id = parent_id
+        await category.create()
+        return category
+
+    async def delete_category(self, category_id):
+        subcategories = await self.get_subcategories(category_id)
+
+        for sc in subcategories:
+            await self.delete_category(sc.id)
+
+        category = await self.get_category(category_id)
+        await category.delete()
+
     async def get_product_by_page(self, parent_id, page_num):
         product = await Product.query.where(Product.category_id == parent_id).limit(1).offset(page_num).gino.first()
         return product
@@ -115,16 +131,6 @@ class DBCommands:
     async def count_category_products(self, category_id):
         number = await db.select([db.func.count(Product.id)]).where(Product.category_id == category_id).gino.scalar()
         return number
-
-    async def create_category(self, category_name, parent_id):
-        category = Category()
-        category.name = category_name
-        category.parent_id = parent_id
-        await category.create()
-        return category
-
-    async def delete_category(self, category_id):
-        
 
     async def get_product(self, product_id):
         product = await Product.get(product_id)

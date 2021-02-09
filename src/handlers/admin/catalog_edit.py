@@ -89,6 +89,7 @@ async def confirm_deletion(call: CallbackQuery, state: FSMContext):
             await call.message.answer("Невозможно удалить главную категорию.")
             return
 
+    await state.update_data({"catalog_message": call.message})
     await CatalogEdit.DeletionConfirmation.set()
     await call.message.answer("Все товары и подкатегории из этой категории также будут удалены. Вы уверены?",
                               reply_markup=confirmation_kb)
@@ -99,10 +100,13 @@ async def delete_category(call: CallbackQuery, state: FSMContext):
     async with state.proxy() as state_data:
         category = await db.get_category(state_data["category_id"])
         state_data["category_id"] = category.parent_id
-        await call.message.answer_photo(InputFile(IMG_CATALOG_PATH),
-                                        reply_markup=await get_admin_subcategories_kb(
-                                            await db.get_subcategories(category.parent_id)),
+        await db.delete_category(category.id)
+
+        await state_data["catalog_message"].edit_caption(reply_markup=await get_admin_subcategories_kb(
+            await db.get_subcategories(category.parent_id)),
                                         caption="Категория успешно удалена!")
+
+        await CatalogEdit.CategoryChoosing.set()
 
 
 @dp.callback_query_handler(state=CatalogEdit.CategoryChoosing)
