@@ -61,3 +61,19 @@ async def get_admin_products_kb(products, page, total):
         ]
     )
     return kb
+
+empty_category_kb = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton("+ ТОВАР", callback_data="new_product"),
+            InlineKeyboardButton("+ КАТЕГОРИЯ", callback_data="new_category"),
+        ],
+        [
+            InlineKeyboardButton("Удалить категорию", callback_data="delete")
+        ],
+        [
+            InlineKeyboardButton(text="Назад", callback_data="back"),
+            InlineKeyboardButton(text="Покинуть каталог", callback_data="cancel"),
+        ]
+    ]
+)

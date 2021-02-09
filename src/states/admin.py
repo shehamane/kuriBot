@@ -14,3 +14,4 @@ class CatalogEdit(StatesGroup):
     ProductsWatching = State()
     CatalogImageRequest = State()
     CategoryNameRequest = State()
+    DeletionConfirmation = State()

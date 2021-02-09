@@ -123,6 +123,9 @@ class DBCommands:
         await category.create()
         return category
 
+    async def delete_category(self, category_id):
+        
+
     async def get_product(self, product_id):
         product = await Product.get(product_id)
         return product
