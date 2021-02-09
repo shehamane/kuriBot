@@ -4,6 +4,7 @@ from aiogram.types import Message, CallbackQuery
 
 from data.api_config import USERS_PAGE_VOLUME
 from filters.is_numeric import IsNumericFilterCallback, IsNumericFilter
+from keyboards.default import admin_panel_kb
 from keyboards.inline import get_users_list_kb, user_info_kb
 from states import UserInfo, AdminPanel
 
@@ -24,6 +25,13 @@ async def show_users_list(message: Message, state: FSMContext):
 
     await message.answer(text_help, reply_markup=await get_users_list_kb(await db.get_users_list(0), 1,
                                                                          (await state.get_data()).get("page_total")))
+
+
+@dp.callback_query_handler(state=UserInfo.UsersList, text="back")
+async def return_to_admin_panel(call: CallbackQuery, state: FSMContext):
+    await call.message.answer("Вы вернулись в панель администратора", reply_markup=admin_panel_kb)
+    await AdminPanel.AdminPanel.set()
+    return
 
 
 @dp.callback_query_handler(text="next", state=UserInfo.UsersList)

@@ -11,7 +11,7 @@ from keyboards.inline import get_admin_products_kb
 from keyboards.inline.admin_catalog import get_admin_subcategories_kb, empty_category_kb
 from keyboards.inline.general import confirmation_kb
 from loader import dp
-from states import AdminPanel, CatalogEdit
+from states import AdminPanel, CatalogEdit, UserInfo
 from utils.db_api.api import db_api as db
 from utils.misc.files import download_image
 
@@ -30,7 +30,8 @@ async def show_admin_catalog(message: Message, state: FSMContext):
 
 @dp.callback_query_handler(
     state=[CatalogEdit.CategoryChoosing,
-           CatalogEdit.ProductsWatching], text="back")
+           CatalogEdit.ProductsWatching,
+           UserInfo.UsersList], text="back")
 async def return_to_parent_catalog(call: CallbackQuery, state: FSMContext):
     async with state.proxy() as state_data:
         if state_data["category_id"] == 1:
