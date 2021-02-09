@@ -30,8 +30,7 @@ async def show_admin_catalog(message: Message, state: FSMContext):
 
 @dp.callback_query_handler(
     state=[CatalogEdit.CategoryChoosing,
-           CatalogEdit.ProductsWatching,
-           UserInfo.UsersList], text="back")
+           CatalogEdit.ProductsWatching], text="back")
 async def return_to_parent_catalog(call: CallbackQuery, state: FSMContext):
     async with state.proxy() as state_data:
         if state_data["category_id"] == 1:
@@ -64,7 +63,7 @@ async def get_image(message: Message):
     await CatalogEdit.CategoryChoosing.set()
 
 
-@dp.callback_query_handler(text="new", state=CatalogEdit.CategoryChoosing)
+@dp.callback_query_handler(text=["new", "new_category"], state=CatalogEdit.CategoryChoosing)
 async def name_request(call: CallbackQuery, state: FSMContext):
     await CatalogEdit.CategoryNameRequest.set()
     await state.update_data({"catalog_message": call.message})
@@ -105,7 +104,7 @@ async def delete_category(call: CallbackQuery, state: FSMContext):
 
         await state_data["catalog_message"].edit_caption(reply_markup=await get_admin_subcategories_kb(
             await db.get_subcategories(category.parent_id)),
-                                        caption="Категория успешно удалена!")
+                                                         caption="Категория успешно удалена!")
 
         await CatalogEdit.CategoryChoosing.set()
 
@@ -117,7 +116,7 @@ async def show_category(call: CallbackQuery, state: FSMContext):
 
     category = await db.get_category(category_id)
 
-    if not (await db.count_category_products(category_id)):
+    if not ((await db.count_category_products(category_id)) or (await db.count_subcategories(category_id))):
         await call.message.edit_reply_markup(empty_category_kb)
     else:
         if category.is_parent:

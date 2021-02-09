@@ -107,16 +107,27 @@ class DBCommands:
         category = Category()
         category.name = category_name
         category.parent_id = parent_id
+        category.is_parent = False
         await category.create()
+
+        parent = await self.get_category(parent_id)
+        if not parent.is_parent:
+            await parent.update(is_parent=True).apply()
+
         return category
 
     async def delete_category(self, category_id):
-        subcategories = await self.get_subcategories(category_id)
-
-        for sc in subcategories:
-            await self.delete_category(sc.id)
-
         category = await self.get_category(category_id)
+
+        if category.is_parent:
+            subcategories = await self.get_subcategories(category_id)
+            for sc in subcategories:
+                await self.delete_category(sc.id)
+        else:
+            products = await self.get_category_products(category_id)
+            for product in products:
+                await product.delete()
+
         await category.delete()
 
     async def get_product_by_page(self, parent_id, page_num):
@@ -130,6 +141,14 @@ class DBCommands:
 
     async def count_category_products(self, category_id):
         number = await db.select([db.func.count(Product.id)]).where(Product.category_id == category_id).gino.scalar()
+        return number
+
+    async def get_category_products(self, category_id):
+        products = await Product.query.where(Product.category_id == category_id).gino.all()
+        return products
+
+    async def count_subcategories(self, parent_id):
+        number = await db.select([db.func.count(Category.id)]).where(Category.parent_id == parent_id).gino.scalar()
         return number
 
     async def get_product(self, product_id):
