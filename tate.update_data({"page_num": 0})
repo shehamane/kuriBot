@@ -1,0 +1,73 @@
+[1mdiff --git a/src/handlers/admin/catalog_edit.py b/src/handlers/admin/catalog_edit.py[m
+[1mindex 0e21249..f4aee71 100644[m
+[1m--- a/src/handlers/admin/catalog_edit.py[m
+[1m+++ b/src/handlers/admin/catalog_edit.py[m
+[36m@@ -13,7 +13,7 @@[m [mfrom keyboards.inline.general import confirmation_kb[m
+ from loader import dp[m
+ from states import AdminPanel, CatalogEdit, UserInfo[m
+ from utils.db_api.api import db_api as db[m
+[31m-from utils.misc.files import download_image[m
+[32m+[m[32mfrom utils.misc.files import download_image, download_product_image[m
+ [m
+ [m
+ @dp.message_handler(Text(ignore_case=True, contains=['каталог']),[m
+[36m@@ -151,3 +151,28 @@[m [masync def show_previous_page(call: CallbackQuery, state: FSMContext):[m
+             await call.message.edit_reply_markup([m
+                 await get_admin_products_kb(await db.get_products_by_page(data["category_id"], data["page_num"]),[m
+                                             data["page_num"] + 1, data["page_total"]))[m
+[32m+[m
+[32m+[m
+[32m+[m[32m@dp.callback_query_handler(text="new", state=CatalogEdit.ProductsWatching)[m
+[32m+[m[32masync def add_new_product(call: CallbackQuery):[m
+[32m+[m[32m    await CatalogEdit.ProductInfoRequest.set()[m
+[32m+[m[32m    await call.message.answer("Введите информацию о новом продукте по шаблону:\n"[m
+[32m+[m[32m                              "НАЗВАНИЕ\n"[m
+[32m+[m[32m                              "ОПИСАНИЕ\n"[m
+[32m+[m[32m                              "ЦЕНА\n"[m
+[32m+[m[32m                              "*можете прикрепить фото продукта к сообщению*")[m
+[32m+[m
+[32m+[m
+[32m+[m[32m@dp.message_handler(state=CatalogEdit.ProductInfoRequest)[m
+[32m+[m[32masync def confirm_addition(message: Message, state: FSMContext):[m
+[32m+[m[32m    strings = message.text.split('\n')[m
+[32m+[m[32m    if len(strings) != 3:[m
+[32m+[m[32m        await message.answer("Вы неверно ввели информацию. Сообщение должно содержать 3 строки, как указано в шаблоне")[m
+[32m+[m[32m    else:[m
+[32m+[m[32m        async with state.proxy() as state_data:[m
+[32m+[m[32m            product_id = await db.create_product(strings[0], strings[1], int(strings[2]), state_data["category_id"])[m
+[32m+[m[32m            if message.photo:[m
+[32m+[m[32m                await download_product_image(product_id, message.photo[-1])[m
+[32m+[m[32m            await message.answer("Продукт успешно создан!")[m
+[32m+[m
+[32m+[m[32m            await CatalogEdit.CategoryChoosing.set()[m
+[1mdiff --git a/src/states/admin.py b/src/states/admin.py[m
+[1mindex f149d1e..03d15e7 100644[m
+[1m--- a/src/states/admin.py[m
+[1m+++ b/src/states/admin.py[m
+[36m@@ -15,3 +15,5 @@[m [mclass CatalogEdit(StatesGroup):[m
+     CatalogImageRequest = State()[m
+     CategoryNameRequest = State()[m
+     DeletionConfirmation = State()[m
+[32m+[m[32m    ProductInfoRequest = State()[m
+[32m+[m[32m    AddtionConfirmation = State()[m
+[1mdiff --git a/src/utils/db_api/api.py b/src/utils/db_api/api.py[m
+[1mindex 8eeec31..7099ecb 100644[m
+[1m--- a/src/utils/db_api/api.py[m
+[1m+++ b/src/utils/db_api/api.py[m
+[36m@@ -139,6 +139,16 @@[m [mclass DBCommands:[m
+             page_num * PRODUCTS_PAGE_VOLUME).gino.all()[m
+         return products[m
+ [m
+[32m+[m[32m    async def create_product(self, name, description, price, category_id):[m
+[32m+[m[32m        product = Product()[m
+[32m+[m[32m        product.name = name[m
+[32m+[m[32m        product.description = description[m
+[32m+[m[32m        product.price = price[m
+[32m+[m[32m        product.category_id = category_id[m
+[32m+[m[32m        await product.create()[m
+[32m+[m
+[32m+[m[32m        return product.id[m
+[32m+[m
+     async def count_category_products(self, category_id):[m
+         number = await db.select([db.func.count(Product.id)]).where(Product.category_id == category_id).gino.scalar()[m
+         return number[m

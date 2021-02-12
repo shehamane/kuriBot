@@ -8,12 +8,12 @@ from data.api_config import PRODUCTS_PAGE_VOLUME
 from data.media_config import IMG_CATALOG_PATH
 from keyboards.default import admin_panel_kb
 from keyboards.inline import get_admin_products_kb
-from keyboards.inline.admin_catalog import get_admin_subcategories_kb, empty_category_kb
-from keyboards.inline.general import confirmation_kb
+from keyboards.inline.admin_catalog import get_admin_subcategories_kb, empty_category_kb, download_image_kb
+from keyboards.inline.general import confirmation_kb, cancel_kb
 from loader import dp
 from states import AdminPanel, CatalogEdit, UserInfo
 from utils.db_api.api import db_api as db
-from utils.misc.files import download_image
+from utils.misc.files import download_image, download_product_image
 
 
 @dp.message_handler(Text(ignore_case=True, contains=['каталог']),
@@ -109,18 +109,16 @@ async def delete_category(call: CallbackQuery, state: FSMContext):
         await CatalogEdit.CategoryChoosing.set()
 
 
-@dp.callback_query_handler(state=CatalogEdit.CategoryChoosing)
-async def show_category(call: CallbackQuery, state: FSMContext):
-    category_id = int(call.data)
+async def show_category(category_id, state, message):
     await state.update_data({"category_id": category_id})
 
     category = await db.get_category(category_id)
 
     if not ((await db.count_category_products(category_id)) or (await db.count_subcategories(category_id))):
-        await call.message.edit_reply_markup(empty_category_kb)
+        await message.edit_reply_markup(empty_category_kb)
     else:
         if category.is_parent:
-            await call.message.edit_reply_markup(
+            await message.edit_reply_markup(
                 await get_admin_subcategories_kb(await db.get_subcategories(category_id)))
         else:
             await CatalogEdit.ProductsWatching.set()
@@ -128,9 +126,15 @@ async def show_category(call: CallbackQuery, state: FSMContext):
             await state.update_data(
                 {"page_total": int(ceil(await db.count_category_products(category_id) / PRODUCTS_PAGE_VOLUME))})
 
-            await call.message.edit_reply_markup(
+            await message.edit_reply_markup(
                 await get_admin_products_kb(await db.get_products_by_page(category_id, 0), 1,
                                             (await state.get_data()).get("page_total")))
+
+
+@dp.callback_query_handler(state=CatalogEdit.CategoryChoosing)
+async def move_to_category(call: CallbackQuery, state: FSMContext):
+    category_id = int(call.data)
+    await show_category(category_id, state, call.message)
 
 
 @dp.callback_query_handler(text="next", state=CatalogEdit.ProductsWatching)
@@ -151,3 +155,50 @@ async def show_previous_page(call: CallbackQuery, state: FSMContext):
             await call.message.edit_reply_markup(
                 await get_admin_products_kb(await db.get_products_by_page(data["category_id"], data["page_num"]),
                                             data["page_num"] + 1, data["page_total"]))
+
+
+@dp.callback_query_handler(text="new", state=CatalogEdit.ProductsWatching)
+async def add_new_product(call: CallbackQuery):
+    await CatalogEdit.ProductInfoRequest.set()
+    await call.message.answer("Введите информацию о новом продукте по шаблону:\n"
+                              "НАЗВАНИЕ\n"
+                              "ОПИСАНИЕ\n"
+                              "ЦЕНА\n", reply_markup=cancel_kb)
+
+
+@dp.message_handler(state=CatalogEdit.ProductInfoRequest)
+async def confirm_addition(message: Message, state: FSMContext):
+    strings = message.text.split('\n')
+    if len(strings) != 3:
+        await message.answer("Вы неверно ввели информацию. Сообщение должно содержать 3 строки, как указано в шаблоне")
+    else:
+        async with state.proxy() as state_data:
+            product_id = await db.create_product(strings[0], strings[1], int(strings[2]), state_data["category_id"])
+            await message.answer("Продукт успешно создан!", reply_markup=download_image_kb)
+
+            state_data["product_id"] = product_id
+            await CatalogEdit.ProductImageWaiting.set()
+
+
+@dp.callback_query_handler(text="download_product_image", state=CatalogEdit.ProductImageWaiting)
+async def download_image(call: CallbackQuery, state: FSMContext):
+    await CatalogEdit.ProductImageRequest.set()
+
+    await call.message.answer("Отправьте изображение товара")
+
+
+@dp.callback_query_handler(text="without_image", state=CatalogEdit.ProductImageWaiting)
+async def change_state(call: CallbackQuery):
+    await CatalogEdit.CategoryChoosing.set()
+
+    await call.message.delete_reply_markup()
+
+
+@dp.message_handler(content_types=['photo'], state=CatalogEdit.ProductImageRequest)
+async def get_product_image(message: Message, state: FSMContext):
+    async with state.proxy() as state_data:
+        await download_product_image(state_data["product_id"], message.photo[-1])
+        await message.answer("Изображение добавлено!")
+        await CatalogEdit.CategoryChoosing.set()
+
+        await show_category(state["category_id"], state, message)

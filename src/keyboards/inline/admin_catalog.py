@@ -77,3 +77,10 @@ empty_category_kb = InlineKeyboardMarkup(
         ]
     ]
 )
+
+download_image_kb = InlineKeyboardMarkup(inline_keyboard=[
+    [
+        InlineKeyboardButton(text='Добавить изображение товара', callback_data="download_product_image"),
+        InlineKeyboardButton(text='Без изображения', callback_data="without_image")
+    ]
+])

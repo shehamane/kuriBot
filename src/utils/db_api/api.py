@@ -139,6 +139,16 @@ class DBCommands:
             page_num * PRODUCTS_PAGE_VOLUME).gino.all()
         return products
 
+    async def create_product(self, name, description, price, category_id):
+        product = Product()
+        product.name = name
+        product.description = description
+        product.price = price
+        product.category_id = category_id
+        await product.create()
+
+        return product.id
+
     async def count_category_products(self, category_id):
         number = await db.select([db.func.count(Product.id)]).where(Product.category_id == category_id).gino.scalar()
         return number

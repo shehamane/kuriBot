@@ -8,3 +8,9 @@ confirmation_kb = InlineKeyboardMarkup(
          ]
     ]
 )
+
+cancel_kb = InlineKeyboardMarkup(inline_keyboard=[
+    [
+        InlineKeyboardButton("Отмена", callback_data='cancel')
+    ]
+])
