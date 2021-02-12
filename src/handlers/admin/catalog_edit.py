@@ -109,16 +109,18 @@ async def delete_category(call: CallbackQuery, state: FSMContext):
         await CatalogEdit.CategoryChoosing.set()
 
 
-async def show_category(category_id, state, message):
+@dp.callback_query_handler(state=CatalogEdit.CategoryChoosing)
+async def show_category(call: CallbackQuery, state: FSMContext):
+    category_id = int(call.data)
     await state.update_data({"category_id": category_id})
 
     category = await db.get_category(category_id)
 
     if not ((await db.count_category_products(category_id)) or (await db.count_subcategories(category_id))):
-        await message.edit_reply_markup(empty_category_kb)
+        await call.message.edit_reply_markup(empty_category_kb)
     else:
         if category.is_parent:
-            await message.edit_reply_markup(
+            await call.message.edit_reply_markup(
                 await get_admin_subcategories_kb(await db.get_subcategories(category_id)))
         else:
             await CatalogEdit.ProductsWatching.set()
@@ -126,15 +128,9 @@ async def show_category(category_id, state, message):
             await state.update_data(
                 {"page_total": int(ceil(await db.count_category_products(category_id) / PRODUCTS_PAGE_VOLUME))})
 
-            await message.edit_reply_markup(
+            await call.message.edit_reply_markup(
                 await get_admin_products_kb(await db.get_products_by_page(category_id, 0), 1,
                                             (await state.get_data()).get("page_total")))
-
-
-@dp.callback_query_handler(state=CatalogEdit.CategoryChoosing)
-async def move_to_category(call: CallbackQuery, state: FSMContext):
-    category_id = int(call.data)
-    await show_category(category_id, state, call.message)
 
 
 @dp.callback_query_handler(text="next", state=CatalogEdit.ProductsWatching)
@@ -188,17 +184,24 @@ async def download_image(call: CallbackQuery, state: FSMContext):
 
 
 @dp.callback_query_handler(text="without_image", state=CatalogEdit.ProductImageWaiting)
-async def change_state(call: CallbackQuery):
-    await CatalogEdit.CategoryChoosing.set()
-
+async def change_state(call: CallbackQuery, state: FSMContext):
     await call.message.delete_reply_markup()
+    async with state.proxy() as state_data:
+        await call.message.answer_photo(InputFile(IMG_CATALOG_PATH), caption="Изображение добавлено!",
+                                        reply_markup=await get_admin_products_kb(
+                                            await db.get_products_by_page(state_data["category_id"], 0), 1,
+                                            state_data["page_total"]))
+
+        await CatalogEdit.ProductsWatching.set()
 
 
 @dp.message_handler(content_types=['photo'], state=CatalogEdit.ProductImageRequest)
 async def get_product_image(message: Message, state: FSMContext):
     async with state.proxy() as state_data:
         await download_product_image(state_data["product_id"], message.photo[-1])
-        await message.answer("Изображение добавлено!")
-        await CatalogEdit.CategoryChoosing.set()
+        await message.answer_photo(InputFile(IMG_CATALOG_PATH), caption="Изображение добавлено!",
+                                   reply_markup=await get_admin_products_kb(
+                                       await db.get_products_by_page(state_data["category_id"], 0), 1,
+                                       state_data["page_total"]))
 
-        await show_category(state["category_id"], state, message)
+        await CatalogEdit.ProductsWatching.set()
