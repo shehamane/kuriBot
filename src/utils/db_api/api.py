@@ -149,6 +149,10 @@ class DBCommands:
 
         return product.id
 
+    async def delete_product(self, product_id):
+        product = await self.get_product(product_id)
+        await product.delete()
+
     async def count_category_products(self, category_id):
         number = await db.select([db.func.count(Product.id)]).where(Product.category_id == category_id).gino.scalar()
         return number

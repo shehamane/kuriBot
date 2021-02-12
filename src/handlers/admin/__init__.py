@@ -1,3 +1,6 @@
 from .menu import dp
 from .user_info import dp
-from .catalog_edit import dp
+from .catalog import dp
+from .categories import dp
+from .products import dp
+from .product_info import dp
