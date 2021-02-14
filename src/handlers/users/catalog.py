@@ -113,13 +113,13 @@ async def show_previous_product(call: CallbackQuery, state: FSMContext):
         if state_data["product_number"] == -1:
             state_data["product_number"] += products_total
 
-    previous_product = await db.get_product_by_page(state_data["category_id"],
-                                                    state_data["product_number"])
-    state_data["product_id"] = previous_product.id
+        previous_product = await db.get_product_by_page(state_data["category_id"],
+                                                        state_data["product_number"])
+        state_data["product_id"] = previous_product.id
 
-    await send_product_info(call.message, previous_product)
-    await call.message.edit_reply_markup(await get_product_watching_kb(state_data["product_number"] + 1,
-                                                                       products_total, 1))
+        await send_product_info(call.message, previous_product)
+        await call.message.edit_reply_markup(await get_product_watching_kb(state_data["product_number"] + 1,
+                                                                           products_total, 1))
 
 
 @dp.callback_query_handler(state=CatalogListing.ProductWatching, text="increase")
