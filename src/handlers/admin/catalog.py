@@ -6,6 +6,7 @@ from data.media_config import IMG_CATALOG_PATH
 from keyboards.default import admin_panel_kb
 from keyboards.inline import get_admin_products_kb
 from keyboards.inline.admin_catalog import get_admin_subcategories_kb
+from keyboards.inline.general import cancel_kb
 from loader import dp
 from states import AdminPanel, CatalogEdit
 from utils.db_api.api import db_api as db
@@ -46,10 +47,20 @@ async def return_to_parent_catalog(call: CallbackQuery, state: FSMContext):
 
 
 @dp.callback_query_handler(text="change_image", state=CatalogEdit.CategoryChoosing)
-async def change_picture(call: CallbackQuery):
+async def change_picture(call: CallbackQuery, state: FSMContext):
     await CatalogEdit.CatalogImageRequest.set()
 
-    await call.message.answer("Пришлите новое изображение")
+    async with state.proxy() as state_data:
+        await state_data["catalog_message"].edit_caption("Пришлите новое изображение", reply_markup=cancel_kb)
+
+
+@dp.callback_query_handler(text="cancel", state=CatalogEdit.CatalogImageRequest)
+async def cancel_changing_picture(call: CallbackQuery, state: FSMContext):
+    await CatalogEdit.CategoryChoosing.set()
+
+    async with state.proxy() as state_data:
+        await state_data["catalog_message"].edit_caption("", reply_markup=await get_admin_subcategories_kb(
+            await db.get_subcategories(state_data["category_id"])))
 
 
 @dp.message_handler(content_types=['photo'], state=CatalogEdit.CatalogImageRequest)
