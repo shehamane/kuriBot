@@ -54,8 +54,8 @@ async def change_picture(call: CallbackQuery, state: FSMContext):
         await state_data["catalog_message"].edit_caption("Пришлите новое изображение", reply_markup=cancel_kb)
 
 
-@dp.callback_query_handler(text="cancel", state=CatalogEdit.CatalogImageRequest)
-async def cancel_changing_picture(call: CallbackQuery, state: FSMContext):
+@dp.callback_query_handler(text="cancel", state=[CatalogEdit.CatalogImageRequest, CatalogEdit.CategoryNameRequest])
+async def return_to_category(call: CallbackQuery, state: FSMContext):
     await CatalogEdit.CategoryChoosing.set()
 
     async with state.proxy() as state_data:
@@ -64,10 +64,12 @@ async def cancel_changing_picture(call: CallbackQuery, state: FSMContext):
 
 
 @dp.message_handler(content_types=['photo'], state=CatalogEdit.CatalogImageRequest)
-async def get_catalog_image(message: Message):
+async def get_catalog_image(message: Message, state: FSMContext):
     await download_image("catalog.jpg", message.photo[-1])
-    await message.answer("Изображение изменено!")
-
+    async with state.proxy() as state_data:
+        await state_data["catalog_message"].edit_caption("Изображение изменено!",
+                                                         reply_markup=await get_admin_subcategories_kb(
+                                                             await db.get_subcategories(state_data["category_id"])))
     await CatalogEdit.CategoryChoosing.set()
 
 
