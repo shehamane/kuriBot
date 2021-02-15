@@ -38,7 +38,8 @@ async def return_to_catalog(call: CallbackQuery, state: FSMContext):
 async def confirm_deletion(call: CallbackQuery, state: FSMContext):
     await CatalogEdit.ProductDeletionConfirmation.set()
 
-    await call.message.answer("Вы уверены?", reply_markup=confirmation_kb)
+    async with state.proxy() as state_data:
+        await state_data["catalog_message"].edit_caption("Вы уверены?", reply_markup=confirmation_kb)
 
 
 @dp.callback_query_handler(text="yes", state=CatalogEdit.ProductDeletionConfirmation)
@@ -46,13 +47,12 @@ async def delete_product(call: CallbackQuery, state: FSMContext):
     async with state.proxy() as state_data:
         await db.delete_product(state_data["product_id"])
         catalog_message = state_data["catalog_message"]
-    await call.message.delete_reply_markup()
-    await call.message.edit_text("Товар удален.")
 
     await catalog_message.edit_media(InputMediaPhoto(InputFile(IMG_CATALOG_PATH)))
     async with state.proxy() as state_data:
-        await catalog_message.edit_reply_markup(
-            await get_admin_products_kb(
-                await db.get_products_by_page(state_data["category_id"], state_data["page_num"]),
-                state_data["page_num"] + 1, state_data["page_total"]))
+        await catalog_message.edit_caption("Товар удален",
+                                           reply_markup=await get_admin_products_kb(
+                                               await db.get_products_by_page(state_data["category_id"],
+                                                                             state_data["page_num"]),
+                                               state_data["page_num"] + 1, state_data["page_total"]))
     await CatalogEdit.ProductsWatching.set()

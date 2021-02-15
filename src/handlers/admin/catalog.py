@@ -26,6 +26,14 @@ async def show_admin_catalog(message: Message, state: FSMContext):
                                                                        await db.get_subcategories(1)))
 
 
+@dp.callback_query_handler(text="cancel", state=[CatalogEdit.CategoryChoosing, CatalogEdit.ProductsWatching])
+async def return_to_admin_panel(call: CallbackQuery, state: FSMContext):
+    await state.finish()
+    await AdminPanel.AdminPanel.set()
+
+    await call.message.answer("Вы вернулись в панель администратора", reply_markup=admin_panel_kb)
+
+
 @dp.callback_query_handler(
     state=[CatalogEdit.CategoryChoosing,
            CatalogEdit.ProductsWatching], text="back")
