@@ -4,6 +4,7 @@ from aiogram.dispatcher import FSMContext
 from aiogram.types import Message, CallbackQuery
 
 from data.api_config import PRODUCTS_PAGE_VOLUME
+from filters.is_numeric import IsNumericFilterCallback
 from keyboards.inline import get_admin_products_kb
 from keyboards.inline.admin_catalog import get_admin_subcategories_kb, empty_category_kb
 from keyboards.inline.general import confirmation_kb, cancel_kb
@@ -81,7 +82,7 @@ async def cancel_deletion(call: CallbackQuery, state: FSMContext):
     await CatalogEdit.CategoryChoosing.set()
 
 
-@dp.callback_query_handler(state=CatalogEdit.CategoryChoosing)
+@dp.callback_query_handler(IsNumericFilterCallback(), state=CatalogEdit.CategoryChoosing)
 async def show_category(call: CallbackQuery, state: FSMContext):
     category_id = int(call.data)
     await state.update_data({"category_id": category_id})
@@ -90,6 +91,8 @@ async def show_category(call: CallbackQuery, state: FSMContext):
 
     if not ((await db.count_category_products(category_id)) or (await db.count_subcategories(category_id))):
         await call.message.edit_reply_markup(empty_category_kb)
+        await state.update_data({"page_num": 0})
+        await state.update_data({"page_total": 0})
     else:
         if category.is_parent:
             await call.message.edit_reply_markup(

@@ -7,7 +7,7 @@ async def get_admin_subcategories_kb(subcategories):
     kb.inline_keyboard.pop()
     kb.inline_keyboard.append(
         [
-            InlineKeyboardButton(text="+", callback_data="new")
+            InlineKeyboardButton(text="+", callback_data="new_category")
         ]
     )
     kb.inline_keyboard.append(
@@ -37,7 +37,7 @@ async def get_admin_products_kb(products, page, total):
 
     kb.inline_keyboard.append(
         [
-            InlineKeyboardButton(text="+", callback_data="new"),
+            InlineKeyboardButton(text="+", callback_data="new_product"),
         ]
     )
 

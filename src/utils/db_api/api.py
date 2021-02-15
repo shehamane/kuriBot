@@ -3,6 +3,7 @@ from gino import Gino
 from sqlalchemy import Column, Sequence, BigInteger, String, sql, Integer, Text, Boolean, and_
 
 from data.api_config import CART_PAGE_VOLUME, USERS_PAGE_VOLUME, PRODUCTS_PAGE_VOLUME
+from utils.misc.files import delete_product_image
 
 db = Gino()
 
@@ -126,6 +127,7 @@ class DBCommands:
         else:
             products = await self.get_category_products(category_id)
             for product in products:
+                await delete_product_image(product.id)
                 await product.delete()
 
         await category.delete()
@@ -147,10 +149,16 @@ class DBCommands:
         product.category_id = category_id
         await product.create()
 
+        parent = await self.get_category(product.category_id)
+        if parent.is_parent:
+            await parent.update(is_parent = False).apply()
+
         return product.id
 
     async def delete_product(self, product_id):
         product = await self.get_product(product_id)
+        await delete_product_image(product_id)
+
         await product.delete()
 
     async def count_category_products(self, category_id):

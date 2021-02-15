@@ -1,6 +1,9 @@
+from math import ceil
+
 from aiogram.dispatcher import FSMContext
 from aiogram.types import Message, InputFile, CallbackQuery
 
+from data.api_config import PRODUCTS_PAGE_VOLUME
 from data.media_config import IMG_CATALOG_PATH
 from keyboards.inline import get_admin_products_kb
 from keyboards.inline.admin_catalog import download_image_kb
@@ -11,7 +14,8 @@ from utils.db_api.api import db_api as db
 from utils.misc.files import download_product_image
 
 
-@dp.callback_query_handler(text="new", state=CatalogEdit.ProductsWatching)
+@dp.callback_query_handler(text=["new", "new_product"],
+                           state=[CatalogEdit.ProductsWatching, CatalogEdit.CategoryChoosing])
 async def add_new_product(call: CallbackQuery, state: FSMContext):
     await CatalogEdit.ProductInfoRequest.set()
 
@@ -31,11 +35,14 @@ async def get_info(message: Message, state: FSMContext):
         if len(strings) != 3:
             await state_data["catalog_message"].edit_caption(
                 "Вы неверно ввели информацию. Сообщение должно содержать 3 строки,"
-                " как указано в шаблоне. Попробуйте снова")
+                " как указано в шаблоне. Попробуйте снова", reply_markup=cancel_kb)
         else:
             product_id = await db.create_product(strings[0], strings[1], int(strings[2]), state_data["category_id"])
             await state_data["catalog_message"].edit_caption("Продукт успешно создан",
                                                              reply_markup=download_image_kb)
+            await state.update_data(
+                {"page_total": int(
+                    ceil(await db.count_category_products(state_data["category_id"]) / PRODUCTS_PAGE_VOLUME))})
 
             state_data["product_id"] = product_id
             await CatalogEdit.ProductImageWaiting.set()
@@ -65,8 +72,9 @@ async def get_product_image(message: Message, state: FSMContext):
         await download_product_image(state_data["product_id"], message.photo[-1])
         await state_data["catalog_message"].edit_caption(caption="Изображение добавлено!",
                                                          reply_markup=await get_admin_products_kb(
-                                                             await db.get_products_by_page(state_data["category_id"],
-                                                                                           0), 1,
+                                                             await db.get_products_by_page(
+                                                                 state_data["category_id"],
+                                                                 0), 1,
                                                              state_data["page_total"]))
 
         await CatalogEdit.ProductsWatching.set()
