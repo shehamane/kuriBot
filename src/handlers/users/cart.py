@@ -10,7 +10,7 @@ from states import CartListing
 from loader import dp
 from utils.db_api.api import db_api as db
 
-from data.api_config import PAGE_VOLUME
+from data.api_config import CART_PAGE_VOLUME
 from data.media_config import IMG_CART_PATH
 
 
@@ -28,7 +28,7 @@ async def show_cart(message: Message, state: FSMContext):
 @dp.callback_query_handler(text="next", state=CartListing.CartWatching)
 async def show_next_page(call: CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
-        if data["page_num"] < int(await db.count_cart() / (PAGE_VOLUME + 1)):
+        if data["page_num"] < int(await db.count_cart() / (CART_PAGE_VOLUME + 1)):
             data["page_num"] += 1
             await call.message.edit_reply_markup(await get_cart_kb(await db.get_cart_page(data["page_num"])))
 

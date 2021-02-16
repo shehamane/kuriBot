@@ -1,10 +1,9 @@
 from aiogram import types
 from gino import Gino
-from gino.schema import GinoSchemaVisitor
 from sqlalchemy import Column, Sequence, BigInteger, String, sql, Integer, Text, Boolean, and_
 
-from data.api_config import PAGE_VOLUME
-from data.config import PG_USER, PG_PASS, PG_HOST
+from data.api_config import CART_PAGE_VOLUME, USERS_PAGE_VOLUME, PRODUCTS_PAGE_VOLUME
+from utils.misc.files import delete_product_image
 
 db = Gino()
 
@@ -88,6 +87,15 @@ class DBCommands:
         user: User = await User.query.where(User.user_id == chat_id).gino.first()
         return user
 
+    async def get_user_by_username(self, username):
+        user = await User.query.where(User.username == username).gino.first()
+        return user
+
+    async def get_users_list(self, page_num):
+        users_list = await User.query.order_by(User.username).limit(USERS_PAGE_VOLUME).offset(
+            page_num * USERS_PAGE_VOLUME).gino.all()
+        return users_list
+
     async def get_category(self, category_id):
         category = await Category.get(category_id)
         return category
@@ -96,12 +104,88 @@ class DBCommands:
         categories = await Category.query.where(Category.parent_id == parent_id).gino.all()
         return categories
 
+    async def create_category(self, category_name, parent_id):
+        category = Category()
+        category.name = category_name
+        category.parent_id = parent_id
+        category.is_parent = False
+        await category.create()
+
+        parent = await self.get_category(parent_id)
+        if not parent.is_parent:
+            await parent.update(is_parent=True).apply()
+
+        return category
+
+    async def delete_category(self, category_id):
+        category = await self.get_category(category_id)
+
+        if category.is_parent:
+            subcategories = await self.get_subcategories(category_id)
+            for sc in subcategories:
+                await self.delete_category(sc.id)
+        else:
+            products = await self.get_category_products(category_id)
+            for product in products:
+                await self.delete_product(product.id)
+
+        await category.delete()
+
     async def get_product_by_page(self, parent_id, page_num):
         product = await Product.query.where(Product.category_id == parent_id).limit(1).offset(page_num).gino.first()
         return product
 
+    async def get_products_by_page(self, parent_id, page_num):
+        products = await Product.query.where(Product.category_id == parent_id).limit(PRODUCTS_PAGE_VOLUME).offset(
+            page_num * PRODUCTS_PAGE_VOLUME).gino.all()
+        return products
+
+    async def create_product(self, name, description, price, category_id):
+        product = Product()
+        product.name = name
+        product.description = description
+        product.price = price
+        product.category_id = category_id
+        await product.create()
+
+        parent = await self.get_category(product.category_id)
+        if parent.is_parent:
+            await parent.update(is_parent=False).apply()
+
+        return product.id
+
+    async def delete_product(self, product_id):
+        product = await self.get_product(product_id)
+        await delete_product_image(product_id)
+
+        records = await CartRecord.query.where(CartRecord.product_id == product_id).gino.all()
+        for record in records:
+            await record.delete()
+
+        await product.delete()
+
+    async def change_product_name(self, product_id, new_name):
+        product = await self.get_product(product_id)
+        await product.update(name=new_name).apply()
+
+    async def change_product_desctiption(self, product_id, new_description):
+        product = await self.get_product(product_id)
+        await product.update(description=new_description).apply()
+
+    async def change_product_price(self, product_id, new_price):
+        product = await self.get_product(product_id)
+        await product.update(price=new_price).apply()
+
     async def count_category_products(self, category_id):
         number = await db.select([db.func.count(Product.id)]).where(Product.category_id == category_id).gino.scalar()
+        return number
+
+    async def get_category_products(self, category_id):
+        products = await Product.query.where(Product.category_id == category_id).gino.all()
+        return products
+
+    async def count_subcategories(self, parent_id):
+        number = await db.select([db.func.count(Category.id)]).where(Category.parent_id == parent_id).gino.scalar()
         return number
 
     async def get_product(self, product_id):
@@ -136,14 +220,18 @@ class DBCommands:
 
     async def get_cart_page(self, page_num):
         user_id = (await self.get_user_by_chat_id(types.User.get_current().id)).id
-        cart_page = await CartRecord.query.where(CartRecord.user_id == user_id).limit(PAGE_VOLUME).offset(
-            page_num * PAGE_VOLUME).gino.all()
+        cart_page = await CartRecord.query.where(CartRecord.user_id == user_id).limit(CART_PAGE_VOLUME).offset(
+            page_num * CART_PAGE_VOLUME).gino.all()
         return cart_page
 
     async def count_cart(self):
         user_id = (await self.get_user_by_chat_id(types.User.get_current().id)).id
         number = await db.select([db.func.count(CartRecord.id)]).where(CartRecord.user_id == user_id).gino.scalar()
         return number
+
+    async def get_cart_by_id(self, user_id):
+        cart = await CartRecord.query.where(CartRecord.user_id == user_id).gino.all()
+        return cart
 
 
 db_api = DBCommands()

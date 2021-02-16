@@ -2,15 +2,15 @@ from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InputFile
 from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher import FSMContext
 
-from data.media_config import IMG_CATALOG_PATH
 from keyboards.default import main_menu_kb
 from utils.misc.files import get_product_image_path
+from keyboards.inline import get_subcategories_kb, get_product_watching_kb
+from states import CatalogListing
+
+from data.media_config import IMG_CATALOG_PATH
 
 from loader import dp
 from utils.db_api.api import db_api as db
-
-from keyboards.inline import get_subcategories_kb, get_product_watching_kb
-from states import CatalogListing
 
 
 async def send_product_info(message: Message, product):
