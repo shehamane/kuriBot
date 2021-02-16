@@ -127,8 +127,7 @@ class DBCommands:
         else:
             products = await self.get_category_products(category_id)
             for product in products:
-                await delete_product_image(product.id)
-                await product.delete()
+                await self.delete_product(product.id)
 
         await category.delete()
 
@@ -151,13 +150,17 @@ class DBCommands:
 
         parent = await self.get_category(product.category_id)
         if parent.is_parent:
-            await parent.update(is_parent = False).apply()
+            await parent.update(is_parent=False).apply()
 
         return product.id
 
     async def delete_product(self, product_id):
         product = await self.get_product(product_id)
         await delete_product_image(product_id)
+
+        records = await CartRecord.query.where(CartRecord.product_id == product_id).gino.all()
+        for record in records:
+            await record.delete()
 
         await product.delete()
 
