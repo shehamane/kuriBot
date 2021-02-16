@@ -95,7 +95,8 @@ product_info_kb = InlineKeyboardMarkup(inline_keyboard=[
         InlineKeyboardButton(text="ЦЕНА", callback_data="change_price")
     ],
     [
-        InlineKeyboardButton(text="Удалить товар", callback_data="delete"),
+        InlineKeyboardButton(text="ИЗОБРАЖЕНИЕ", callback_data="change_image"),
+        InlineKeyboardButton(text="УДАЛИТЬ", callback_data="delete"),
     ],
     [
         InlineKeyboardButton(text="Назад", callback_data="back")

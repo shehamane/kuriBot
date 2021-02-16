@@ -9,7 +9,7 @@ async def download_product_image(product_id, image: PhotoSize):
     dir_path = "../img/products/" + str(product_id)
     if not os.path.exists(dir_path):
         os.mkdir(dir_path)
-    await image.download(dir_path + "/" + str(time.time()) + ".jpg")
+    await image.download(dir_path + "/" + str("MAIN.jpg"))
 
 
 async def delete_product_image(product_id):

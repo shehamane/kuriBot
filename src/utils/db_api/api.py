@@ -161,6 +161,18 @@ class DBCommands:
 
         await product.delete()
 
+    async def change_product_name(self, product_id, new_name):
+        product = await self.get_product(product_id)
+        await product.update(name=new_name).apply()
+
+    async def change_product_desctiption(self, product_id, new_description):
+        product = await self.get_product(product_id)
+        await product.update(description=new_description).apply()
+
+    async def change_product_price(self, product_id, new_price):
+        product = await self.get_product(product_id)
+        await product.update(price=new_price).apply()
+
     async def count_category_products(self, category_id):
         number = await db.select([db.func.count(Product.id)]).where(Product.category_id == category_id).gino.scalar()
         return number
