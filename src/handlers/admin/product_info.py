@@ -103,9 +103,10 @@ async def change_image(message: Message, state: FSMContext):
     await show_last_product_info(state=state)
 
 
-@dp.callback_query_handler(text=["cancel", "no"],
-                           state=[CatalogEdit.ProductDeletionConfirmation, CatalogEdit.ProductInfoChangeRequest])
-async def show_last_product_info(state: FSMContext):
+@dp.callback_query_handler(text="cancel",
+                           state=[CatalogEdit.ProductDeletionConfirmation, CatalogEdit.ProductInfoChangeRequest,
+                                  CatalogEdit.ProductImageChangeRequest])
+async def show_last_product_info(_, state: FSMContext):
     await CatalogEdit.ProductWatching.set()
     async with state.proxy() as state_data:
         product = await db.get_product(state_data["product_id"])
