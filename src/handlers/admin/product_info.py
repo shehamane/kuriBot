@@ -5,7 +5,7 @@ from data.media_config import IMG_CATALOG_PATH
 from filters.is_numeric import IsNumericFilterCallback
 from handlers.users.catalog import send_product_info
 from keyboards.inline import get_admin_products_kb
-from keyboards.inline.admin_catalog import product_info_kb, get_admin_subcategories_kb
+from keyboards.inline.admin_catalog import product_info_kb, get_admin_subcategories_kb, empty_category_kb
 from keyboards.inline.general import confirmation_kb, cancel_kb
 from loader import dp
 from states import CatalogEdit
@@ -51,11 +51,14 @@ async def delete_product(call: CallbackQuery, state: FSMContext):
 
     await catalog_message.edit_media(InputMediaPhoto(InputFile(IMG_CATALOG_PATH)))
     async with state.proxy() as state_data:
-        await catalog_message.edit_caption("Товар удален",
-                                           reply_markup=await get_admin_products_kb(
-                                               await db.get_products_by_page(state_data["category_id"],
-                                                                             state_data["page_num"]),
-                                               state_data["page_num"] + 1, state_data["page_total"]))
+        if not (await db.count_category_products(state_data["category_id"])):
+            await catalog_message.edit_caption("Товар удален", reply_markup=empty_category_kb)
+        else:
+            await catalog_message.edit_caption("Товар удален",
+                                               reply_markup=await get_admin_products_kb(
+                                                   await db.get_products_by_page(state_data["category_id"],
+                                                                                 state_data["page_num"]),
+                                                   state_data["page_num"] + 1, state_data["page_total"]))
     await CatalogEdit.ProductsWatching.set()
 
 
@@ -75,14 +78,14 @@ async def change_info(message: Message, state: FSMContext):
     async with state.proxy() as state_data:
         if state_data["edit_type"] == "change_name":
             await db.change_product_name(state_data["product_id"], value)
-            await show_last_product_info(state=state)
+            await show_last_product_info(None, state)
         elif state_data["edit_type"] == "change_description":
             await db.change_product_desctiption(state_data["product_id"], value)
-            await show_last_product_info(state=state)
+            await show_last_product_info(None, state)
         elif state_data["edit_type"] == "change_price":
             if value.isnumeric():
                 await db.change_product_price(state_data["product_id"], int(value))
-                await show_last_product_info(state=state)
+                await show_last_product_info(None, state)
             else:
                 await state_data["catalog_message"].edit_caption("Введите новое значение корректно",
                                                                  reply_markup=cancel_kb)
@@ -100,7 +103,7 @@ async def change_image(message: Message, state: FSMContext):
     async with state.proxy() as state_data:
         await download_product_image(state_data["product_id"], message.photo[-1])
 
-    await show_last_product_info(state=state)
+    await show_last_product_info(None, state)
 
 
 @dp.callback_query_handler(text="cancel",

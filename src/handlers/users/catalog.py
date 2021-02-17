@@ -2,7 +2,9 @@ from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InputFile
 from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher import FSMContext
 
+from filters.is_numeric import IsNumericFilterCallback
 from keyboards.default import main_menu_kb
+from keyboards.inline.general import back_kb
 from utils.misc.files import get_product_image_path
 from keyboards.inline import get_subcategories_kb, get_product_watching_kb
 from states import CatalogListing
@@ -38,8 +40,23 @@ async def show_catalog(message: Message, state: FSMContext):
                 "Для получения информации о товаре нажмите на него.\n" \
                 "Чтобы покинуть каталог нажмите или введите \"Отмена\".\n"
 
-    await message.answer_photo(InputFile(IMG_CATALOG_PATH), caption=text_help,
-                               reply_markup=await get_subcategories_kb(await db.get_subcategories(1)))
+    main = await db.get_category(1)
+    if main.is_parent:
+        await message.answer_photo(InputFile(IMG_CATALOG_PATH), caption=text_help,
+                                   reply_markup=await get_subcategories_kb(await db.get_subcategories(1)))
+    else:
+        await CatalogListing.ProductWatching.set()
+
+        products_total = await db.count_category_products(1)
+        await state.update_data({"product_number": 0, "product_amount": 1, "products_total": products_total})
+
+        product = await db.get_product_by_page(1, 0)
+        await state.update_data({"product_id": product.id})
+
+        catalog_message = await message.answer_photo(InputFile(IMG_CATALOG_PATH), caption="КАТАЛОГ")
+        await send_product_info(catalog_message, product)
+        await catalog_message.edit_reply_markup(
+            await get_product_watching_kb(1, await db.count_category_products(1), 1))
 
 
 @dp.callback_query_handler(state=[CatalogListing.CategoryChoosing, CatalogListing.ProductWatching], text="back")
@@ -61,7 +78,7 @@ async def return_to_parent_category(call: CallbackQuery, state: FSMContext):
         await get_subcategories_kb(await db.get_subcategories(curr_category.parent_id)))
 
 
-@dp.callback_query_handler(state=CatalogListing.CategoryChoosing)
+@dp.callback_query_handler(IsNumericFilterCallback(), state=CatalogListing.CategoryChoosing)
 async def show_category(call: CallbackQuery, state: FSMContext):
     category_id = int(call.data)
     await state.update_data({"category_id": category_id})
@@ -74,6 +91,10 @@ async def show_category(call: CallbackQuery, state: FSMContext):
         await CatalogListing.ProductWatching.set()
 
         products_total = await db.count_category_products((await state.get_data())["category_id"])
+
+        if not products_total:
+            await call.message.edit_caption("Категория пуста.", reply_markup=back_kb)
+            return
         await state.update_data({"product_number": 0, "product_amount": 1, "products_total": products_total})
 
         product = await db.get_product_by_page(category_id, 0)

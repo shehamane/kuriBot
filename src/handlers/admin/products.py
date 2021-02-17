@@ -40,9 +40,8 @@ async def get_info(message: Message, state: FSMContext):
             product_id = await db.create_product(strings[0], strings[1], int(strings[2]), state_data["category_id"])
             await state_data["catalog_message"].edit_caption("Продукт успешно создан",
                                                              reply_markup=download_image_kb)
-            await state.update_data(
-                {"page_total": int(
-                    ceil(await db.count_category_products(state_data["category_id"]) / PRODUCTS_PAGE_VOLUME))})
+            state_data["page_total"] = int(
+                ceil(await db.count_category_products(state_data["category_id"]) / PRODUCTS_PAGE_VOLUME))
 
             state_data["product_id"] = product_id
             await CatalogEdit.ProductImageWaiting.set()
@@ -60,7 +59,8 @@ async def download_image(call: CallbackQuery, state: FSMContext):
 async def change_state(call: CallbackQuery, state: FSMContext):
     async with state.proxy() as state_data:
         await call.message.edit_reply_markup(await get_admin_products_kb(
-            await db.get_products_by_page(state_data["category_id"], 0), 1,
+            await db.get_products_by_page(state_data["category_id"], state_data["page_num"]),
+            state_data["page_num"] + 1,
             state_data["page_total"]))
 
         await CatalogEdit.ProductsWatching.set()

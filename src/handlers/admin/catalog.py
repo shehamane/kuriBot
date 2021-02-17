@@ -1,11 +1,14 @@
+from math import ceil
+
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.types import Message, InputFile, CallbackQuery, InputMediaPhoto
 
+from data.api_config import PRODUCTS_PAGE_VOLUME
 from data.media_config import IMG_CATALOG_PATH
 from keyboards.default import admin_panel_kb
 from keyboards.inline import get_admin_products_kb
-from keyboards.inline.admin_catalog import get_admin_subcategories_kb
+from keyboards.inline.admin_catalog import get_admin_subcategories_kb, empty_category_kb
 from keyboards.inline.general import cancel_kb
 from loader import dp
 from states import AdminPanel, CatalogEdit
@@ -17,13 +20,31 @@ from utils.misc.files import download_image
                     state=[AdminPanel.AdminPanel, CatalogEdit.CategoryChoosing])
 async def show_admin_catalog(message: Message, state: FSMContext):
     await state.finish()
-    await CatalogEdit.CategoryChoosing.set()
 
     await state.update_data({"category_id": 1})
     async with state.proxy() as state_data:
-        state_data["catalog_message"] = await message.answer_photo(InputFile(IMG_CATALOG_PATH),
-                                                                   reply_markup=await get_admin_subcategories_kb(
-                                                                       await db.get_subcategories(1)))
+        if not ((await db.count_category_products(1)) or (await db.count_subcategories(1))):
+            await CatalogEdit.CategoryChoosing.set()
+            state_data["catalog_message"] = await message.answer_photo(InputFile(IMG_CATALOG_PATH),
+                                                                       reply_markup=empty_category_kb)
+            state_data["page_num"] = 0
+            state_data["page_total"] = 0
+        else:
+            await CatalogEdit.CategoryChoosing.set()
+            main = await db.get_category(1)
+            if main.is_parent:
+                state_data["catalog_message"] = await message.answer_photo(InputFile(IMG_CATALOG_PATH),
+                                                                           reply_markup=await get_admin_subcategories_kb(
+                                                                               await db.get_subcategories(1)))
+            else:
+                await CatalogEdit.ProductsWatching.set()
+                state_data["page_num"] = 0
+                state_data["page_total"] = int(
+                    ceil(await db.count_category_products(state_data["category_id"]) / PRODUCTS_PAGE_VOLUME))
+                state_data["catalog_message"] = await message.answer_photo(InputFile(IMG_CATALOG_PATH),
+                                                                           reply_markup=await get_admin_products_kb(
+                                                                               await db.get_category_products(1), 1,
+                                                                               state_data["page_total"]))
 
 
 @dp.callback_query_handler(text="cancel", state=[CatalogEdit.CategoryChoosing, CatalogEdit.ProductsWatching])
@@ -75,9 +96,14 @@ async def return_to_category(call: CallbackQuery, state: FSMContext):
 async def get_catalog_image(message: Message, state: FSMContext):
     await download_image("catalog.jpg", message.photo[-1])
     async with state.proxy() as state_data:
-        await state_data["catalog_message"].edit_caption("Изображение изменено!",
-                                                         reply_markup=await get_admin_subcategories_kb(
-                                                             await db.get_subcategories(state_data["category_id"])))
+        await state_data["catalog_message"].edit_media(InputMediaPhoto(InputFile(IMG_CATALOG_PATH)))
+        if not state_data["page_total"]:
+            await state_data["catalog_message"].edit_caption("Изображение изменено!",
+                                                             reply_markup=empty_category_kb)
+        else:
+            await state_data["catalog_message"].edit_caption("Изображение изменено!",
+                                                             reply_markup=await get_admin_subcategories_kb(
+                                                                 await db.get_subcategories(state_data["category_id"])))
     await CatalogEdit.CategoryChoosing.set()
 
 

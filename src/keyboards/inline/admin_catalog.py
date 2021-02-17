@@ -70,7 +70,8 @@ empty_category_kb = InlineKeyboardMarkup(
             InlineKeyboardButton("+ КАТЕГОРИЯ", callback_data="new_category"),
         ],
         [
-            InlineKeyboardButton("Удалить категорию", callback_data="delete")
+            InlineKeyboardButton("Удалить категорию", callback_data="delete"),
+            InlineKeyboardButton("Изменить изображение", callback_data="change_image")
         ],
         [
             InlineKeyboardButton(text="Назад", callback_data="back"),

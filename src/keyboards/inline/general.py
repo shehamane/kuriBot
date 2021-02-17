@@ -14,3 +14,9 @@ cancel_kb = InlineKeyboardMarkup(inline_keyboard=[
         InlineKeyboardButton("Отмена", callback_data='cancel')
     ]
 ])
+
+back_kb = InlineKeyboardMarkup(inline_keyboard=[
+    [
+        InlineKeyboardButton("Назад", callback_data="back")
+    ]
+])
