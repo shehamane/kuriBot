@@ -17,6 +17,8 @@ class User(db.Model):
     username = Column(String(30))
     fullname = Column(String(50))
     referral_id = Column(Integer)
+    phone_number = Column(String(11))
+    address = Column(String(50))
 
 
 class Product(db.Model):
@@ -61,7 +63,6 @@ class DBCommands:
         new_user = User()
         new_user.user_id = user.id
         new_user.username = user.username
-        new_user.fullname = user.full_name
         if referral:
             new_user.referral_id = int(referral)
 
