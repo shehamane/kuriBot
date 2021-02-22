@@ -65,7 +65,7 @@ async def delete_category(call: CallbackQuery, state: FSMContext):
         await CatalogEdit.CategoryChoosing.set()
 
 
-@dp.callback_query_handler(text="cancel", state=CatalogEdit.CategoryDeletionConfirmation)
+@dp.callback_query_handler(text="no", state=CatalogEdit.CategoryDeletionConfirmation)
 async def cancel_deletion(call: CallbackQuery, state: FSMContext):
     async with state.proxy() as state_data:
         category = await db.get_category(state_data["category_id"])

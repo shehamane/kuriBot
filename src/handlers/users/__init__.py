@@ -4,6 +4,7 @@ from .id_check import dp
 from .menu import dp
 from .catalog import dp
 from .cart import dp
+from .ordering import dp
 
 from .default import dp
 

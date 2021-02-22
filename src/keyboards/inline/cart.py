@@ -55,7 +55,7 @@ async def get_cart_kb(page_list):
     keyboard.inline_keyboard.append(
         [
             InlineKeyboardButton(text=f"Итого: {to_pay} р.", callback_data="to_pay"),
-            InlineKeyboardButton(text=f"Оформить заказ", callback_data="checkout")
+            InlineKeyboardButton(text=f"Оформить заказ", callback_data="order")
         ]
     )
     return keyboard

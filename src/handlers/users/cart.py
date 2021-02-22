@@ -11,7 +11,7 @@ from loader import dp
 from utils.db_api.api import db_api as db
 
 from data.api_config import CART_PAGE_VOLUME
-from data.media_config import IMG_CART_PATH
+from data.media_config import IMG_CART_PATH, IMG_DEFAULT_PATH
 
 
 @dp.message_handler(Text(contains=['корзина'], ignore_case=True), state='*')
@@ -56,7 +56,9 @@ async def show_product(call: CallbackQuery, state: FSMContext):
     img_path = await get_product_image_path(product_id)
     if img_path:
         await call.message.edit_media(InputMediaPhoto(InputFile(img_path)))
-        await call.message.edit_caption(text, reply_markup=await get_cart_record_watching_kb(cart_record.amount))
+    else:
+        await call.message.edit_media(InputMediaPhoto(InputFile(IMG_DEFAULT_PATH)))
+    await call.message.edit_caption(text, reply_markup=await get_cart_record_watching_kb(cart_record.amount))
     await state.update_data({"cart_record_id": cart_record_id})
 
 

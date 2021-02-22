@@ -76,6 +76,11 @@ class DBCommands:
             return None
         return user.id
 
+    async def get_current_user(self):
+        user_id = types.User.get_current().id
+        user = await self.get_user_by_chat_id(user_id)
+        return user
+
     async def get_user(self, user_id):
         user = await User.get(user_id)
         return user
