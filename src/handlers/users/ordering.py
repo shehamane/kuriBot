@@ -1,3 +1,4 @@
+from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.types import Message, CallbackQuery
 
@@ -83,3 +84,9 @@ async def confirm_cart(call: CallbackQuery):
 
     await call.message.answer(text, reply_markup=confirmation_cancel_kb)
     await Ordering.OrderConfrimation.set()
+
+@dp.callback_query_handler(text="yes", state=Ordering.OrderConfrimation)
+async def create_order(call: CallbackQuery, state: FSMContext):
+    await db.create_order()
+    await call.message.answer("Заказ оформлен!")
+    await state.finish()

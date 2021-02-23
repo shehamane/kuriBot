@@ -42,14 +42,31 @@ class Category(db.Model):
     is_parent = Column(Boolean)
 
 
-class CartRecord(db.Model):
+class Cart(db.Model):
     __tablename__ = "cart"
     query: sql.Select
 
-    id = Column(Integer, Sequence("cart_record_id_seq"), primary_key=True)
+    id = Column(Integer, Sequence("cart_id_seq"), primary_key=True)
     user_id = Column(Integer)
+    ordered = Column(Boolean)
+
+
+class CartItem(db.Model):
+    __tablename__ = "cart_item"
+    query: sql.Select
+
+    id = Column(Integer, Sequence("cart_item_id_seq"), primary_key=True)
+    cart_id = Column(Integer)
     product_id = Column(Integer)
     amount = Column(Integer)
+
+
+class Order(db.Model):
+    __tablename__ = "orders"
+    query: sql.Select
+
+    id = Column(Integer, Sequence("orders_id_seq"), primary_key=True)
+    cart_id = Column(Integer)
 
 
 class DBCommands:
@@ -67,6 +84,7 @@ class DBCommands:
             new_user.referral_id = int(referral)
 
         await new_user.create()
+        await self.create_cart()
         return new_user
 
     async def get_id(self):
@@ -164,7 +182,7 @@ class DBCommands:
         product = await self.get_product(product_id)
         await delete_product_image(product_id)
 
-        records = await CartRecord.query.where(CartRecord.product_id == product_id).gino.all()
+        records = await CartItem.query.where(CartItem.product_id == product_id).gino.all()
         for record in records:
             await record.delete()
 
@@ -198,19 +216,30 @@ class DBCommands:
         product = await Product.get(product_id)
         return product
 
+    async def create_cart(self):
+        cart = Cart()
+        cart.ordered = False
+        cart.user_id = (await self.get_user_by_chat_id(types.User.get_current().id)).id
+        await cart.create()
+
+        return cart
+
     async def get_cart_record(self, record_id):
-        cart_record = await CartRecord.get(record_id)
+        cart_record = await CartItem.get(record_id)
         return cart_record
 
     async def get_cart_record_by_info(self, product_id):
         user_id = (await self.get_user_by_chat_id(types.User.get_current().id)).id
-        cart_record = await CartRecord.query.where(and_(
-            CartRecord.user_id == user_id, CartRecord.product_id == product_id)).gino.first()
+        cart = await Cart.query.where(and_(Cart.user_id == user_id, Cart.ordered == False)).gino.first()
+        cart_record = await CartItem.query.where(and_(
+            CartItem.cart_id == cart.id, CartItem.product_id == product_id)).gino.first()
         return cart_record
 
     async def add_cart_record(self, product_id, amount):
-        cart_record = CartRecord()
-        cart_record.user_id = (await self.get_user_by_chat_id(types.User.get_current().id)).id
+        user_id = (await self.get_user_by_chat_id(types.User.get_current().id)).id
+        cart = await Cart.query.where(and_(Cart.user_id == user_id, Cart.ordered == False)).gino.first()
+        cart_record = CartItem()
+        cart_record.cart_id = cart.id
         cart_record.product_id = product_id
         cart_record.amount = amount
         await cart_record.create()
@@ -226,18 +255,30 @@ class DBCommands:
 
     async def get_cart_page(self, page_num):
         user_id = (await self.get_user_by_chat_id(types.User.get_current().id)).id
-        cart_page = await CartRecord.query.where(CartRecord.user_id == user_id).limit(CART_PAGE_VOLUME).offset(
+        cart = await Cart.query.where(and_(Cart.user_id == user_id, Cart.ordered == False)).gino.first()
+        cart_page = await CartItem.query.where(CartItem.cart_id == cart.id).limit(CART_PAGE_VOLUME).offset(
             page_num * CART_PAGE_VOLUME).gino.all()
         return cart_page
 
     async def count_cart(self):
         user_id = (await self.get_user_by_chat_id(types.User.get_current().id)).id
-        number = await db.select([db.func.count(CartRecord.id)]).where(CartRecord.user_id == user_id).gino.scalar()
+        cart = await Cart.query.where(and_(Cart.user_id == user_id, Cart.ordered == False)).gino.first()
+        number = await db.select([db.func.count(CartItem.id)]).where(CartItem.cart_id == cart.id).gino.scalar()
         return number
 
     async def get_cart_by_id(self, user_id):
-        cart = await CartRecord.query.where(CartRecord.user_id == user_id).gino.all()
-        return cart
+        cart = await Cart.query.where(and_(Cart.user_id == user_id, Cart.ordered == False)).gino.first()
+        cart_records = await CartItem.query.where(CartItem.cart_id == cart.id).gino.all()
+        return cart_records
+
+    async def create_order(self):
+        user_id = (await self.get_user_by_chat_id(types.User.get_current().id)).id
+        cart = await Cart.query.where(and_(Cart.user_id == user_id, Cart.ordered == False)).gino.first()
+        order = Order()
+        order.cart_id = cart.id
+        await order.create()
+
+        return order
 
 
 db_api = DBCommands()
