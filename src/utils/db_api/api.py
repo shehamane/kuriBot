@@ -231,6 +231,8 @@ class DBCommands:
     async def get_cart_record_by_info(self, product_id):
         user_id = (await self.get_user_by_chat_id(types.User.get_current().id)).id
         cart = await Cart.query.where(and_(Cart.user_id == user_id, Cart.ordered == False)).gino.first()
+        if not cart:
+            cart = await self.create_cart()
         cart_record = await CartItem.query.where(and_(
             CartItem.cart_id == cart.id, CartItem.product_id == product_id)).gino.first()
         return cart_record
@@ -238,6 +240,8 @@ class DBCommands:
     async def add_cart_record(self, product_id, amount):
         user_id = (await self.get_user_by_chat_id(types.User.get_current().id)).id
         cart = await Cart.query.where(and_(Cart.user_id == user_id, Cart.ordered == False)).gino.first()
+        if not cart:
+            cart = await self.create_cart()
         cart_record = CartItem()
         cart_record.cart_id = cart.id
         cart_record.product_id = product_id
@@ -256,6 +260,8 @@ class DBCommands:
     async def get_cart_page(self, page_num):
         user_id = (await self.get_user_by_chat_id(types.User.get_current().id)).id
         cart = await Cart.query.where(and_(Cart.user_id == user_id, Cart.ordered == False)).gino.first()
+        if not cart:
+            cart = await self.create_cart()
         cart_page = await CartItem.query.where(CartItem.cart_id == cart.id).limit(CART_PAGE_VOLUME).offset(
             page_num * CART_PAGE_VOLUME).gino.all()
         return cart_page
@@ -263,17 +269,25 @@ class DBCommands:
     async def count_cart(self):
         user_id = (await self.get_user_by_chat_id(types.User.get_current().id)).id
         cart = await Cart.query.where(and_(Cart.user_id == user_id, Cart.ordered == False)).gino.first()
+        if not cart:
+            cart = await self.create_cart()
         number = await db.select([db.func.count(CartItem.id)]).where(CartItem.cart_id == cart.id).gino.scalar()
         return number
 
     async def get_cart_by_id(self, user_id):
         cart = await Cart.query.where(and_(Cart.user_id == user_id, Cart.ordered == False)).gino.first()
+        if not cart:
+            cart = await self.create_cart()
         cart_records = await CartItem.query.where(CartItem.cart_id == cart.id).gino.all()
         return cart_records
 
     async def create_order(self):
         user_id = (await self.get_user_by_chat_id(types.User.get_current().id)).id
         cart = await Cart.query.where(and_(Cart.user_id == user_id, Cart.ordered == False)).gino.first()
+
+        await cart.update(ordered=True).apply()
+        await self.create_cart()
+
         order = Order()
         order.cart_id = cart.id
         await order.create()
