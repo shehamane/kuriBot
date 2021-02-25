@@ -303,9 +303,10 @@ class DBCommands:
 
     async def get_orders(self):
         user_id = await self.get_id()
-        orders = await Order.query.join(Cart, Order.cart_id == Cart.id).join(User, Cart.user_id==User.id).where(User.id == user_id)
+        carts = await db.select([Cart.id]).select_from(Order.join(Cart).join(User)).where(
+            User.id == user_id).gino.all()
 
-        return orders
+        return carts
 
     async def create_order(self):
         user_id = (await self.get_user_by_chat_id(types.User.get_current().id)).id
