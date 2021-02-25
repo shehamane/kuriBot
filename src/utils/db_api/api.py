@@ -1,6 +1,8 @@
+from datetime import datetime
+
 from aiogram import types
 from gino import Gino
-from sqlalchemy import Column, Sequence, BigInteger, String, sql, Integer, Text, Boolean, and_, ForeignKey
+from sqlalchemy import Column, Sequence, BigInteger, String, sql, Integer, Text, Boolean, and_, ForeignKey, Date
 from sqlalchemy.orm import relationship
 
 from data.api_config import CART_PAGE_VOLUME, USERS_PAGE_VOLUME, PRODUCTS_PAGE_VOLUME
@@ -85,6 +87,8 @@ class Order(db.Model):
 
     id = Column(Integer, Sequence("orders_id_seq"), primary_key=True)
     cart_id = Column(Integer, ForeignKey('carts.id'))
+    date = Column(Date)
+    price = Column(Integer)
 
     cart = relationship("Cart", back_populates="order", uselist=False)
 
@@ -294,6 +298,17 @@ class DBCommands:
         number = await db.select([db.func.count(CartItem.id)]).where(CartItem.cart_id == cart.id).gino.scalar()
         return number
 
+    async def get_cart_price(self, cart_id):
+        products_prices = await db.select([Product.price, CartItem.amount]).select_from(Cart.join(CartItem).join(Product)).where(
+            Cart.id == cart_id).gino.all()
+
+        total = 0
+
+        for price, amount in products_prices:
+            total += price * amount
+
+        return total
+
     async def get_cart_by_id(self, user_id):
         cart = await Cart.query.where(and_(Cart.user_id == user_id, Cart.ordered == False)).gino.first()
         if not cart:
@@ -303,7 +318,7 @@ class DBCommands:
 
     async def get_orders(self):
         user_id = await self.get_id()
-        carts = await db.select([Cart.id]).select_from(Order.join(Cart).join(User)).where(
+        carts = await db.select([Cart.id, Order.date, Order.price]).select_from(Order.join(Cart).join(User)).where(
             User.id == user_id).gino.all()
 
         return carts
@@ -312,12 +327,14 @@ class DBCommands:
         user_id = (await self.get_user_by_chat_id(types.User.get_current().id)).id
         cart = await Cart.query.where(and_(Cart.user_id == user_id, Cart.ordered == False)).gino.first()
 
-        await cart.update(ordered=True).apply()
-        await self.create_cart()
-
         order = Order()
         order.cart_id = cart.id
+        order.price = await self.get_cart_price(cart.id)
+        order.date = datetime.today()
         await order.create()
+
+        await cart.update(ordered=True).apply()
+        await self.create_cart()
 
         return order
 
