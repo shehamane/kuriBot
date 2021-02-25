@@ -1,6 +1,7 @@
 from aiogram import types
 from gino import Gino
-from sqlalchemy import Column, Sequence, BigInteger, String, sql, Integer, Text, Boolean, and_
+from sqlalchemy import Column, Sequence, BigInteger, String, sql, Integer, Text, Boolean, and_, ForeignKey
+from sqlalchemy.orm import relationship
 
 from data.api_config import CART_PAGE_VOLUME, USERS_PAGE_VOLUME, PRODUCTS_PAGE_VOLUME
 from utils.misc.files import delete_product_image
@@ -21,6 +22,9 @@ class User(db.Model):
     address = Column(String(50))
 
 
+User.carts = relationship("Cart", back_populates="user")
+
+
 class Product(db.Model):
     __tablename__ = "products"
     query: sql.Select
@@ -29,7 +33,9 @@ class Product(db.Model):
     name = Column(String(100))
     description = Column(Text)
     price = Column(Integer)
-    category_id = Column(Integer)
+    category_id = Column(Integer, ForeignKey('categories.id'))
+
+    category = relationship("Category", back_populates="products")
 
 
 class Category(db.Model):
@@ -42,23 +48,35 @@ class Category(db.Model):
     is_parent = Column(Boolean)
 
 
+Category.products = relationship("Product", back_populates="category")
+
+
 class Cart(db.Model):
-    __tablename__ = "cart"
+    __tablename__ = "carts"
     query: sql.Select
 
     id = Column(Integer, Sequence("cart_id_seq"), primary_key=True)
-    user_id = Column(Integer)
+    user_id = Column(Integer, ForeignKey('users.id'))
     ordered = Column(Boolean)
+
+    user = relationship("User", back_populates="carts")
+
+
+Cart.cart_items = relationship("CartItem", back_populates="cart")
+Cart.order = relationship("Order", back_populates="cart", uselist=False)
 
 
 class CartItem(db.Model):
-    __tablename__ = "cart_item"
+    __tablename__ = "cart_items"
     query: sql.Select
 
     id = Column(Integer, Sequence("cart_item_id_seq"), primary_key=True)
-    cart_id = Column(Integer)
-    product_id = Column(Integer)
+    cart_id = Column(Integer, ForeignKey('carts.id'))
+    product_id = Column(Integer, ForeignKey('products.id'))
     amount = Column(Integer)
+
+    cart = relationship("Cart", back_populates="cart_items")
+    product = relationship("Product")
 
 
 class Order(db.Model):
@@ -66,7 +84,9 @@ class Order(db.Model):
     query: sql.Select
 
     id = Column(Integer, Sequence("orders_id_seq"), primary_key=True)
-    cart_id = Column(Integer)
+    cart_id = Column(Integer, ForeignKey('carts.id'))
+
+    cart = relationship("Cart", back_populates="order", uselist=False)
 
 
 class DBCommands:
@@ -280,6 +300,12 @@ class DBCommands:
             cart = await self.create_cart()
         cart_records = await CartItem.query.where(CartItem.cart_id == cart.id).gino.all()
         return cart_records
+
+    async def get_orders(self):
+        user_id = await self.get_id()
+        orders = await Order.query.join(Cart, Order.cart_id == Cart.id).join(User, Cart.user_id==User.id).where(User.id == user_id)
+
+        return orders
 
     async def create_order(self):
         user_id = (await self.get_user_by_chat_id(types.User.get_current().id)).id

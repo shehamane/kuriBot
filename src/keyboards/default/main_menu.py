@@ -5,8 +5,11 @@ main_menu_kb = ReplyKeyboardMarkup([
         KeyboardButton(text='ОФОРМИТЬ ЗАКАЗ'),
     ],
     [
+        KeyboardButton(text='КАТАЛОГ')
+    ],
+    [
         KeyboardButton(text='КОРЗИНА'),
-        KeyboardButton(text='КАТАЛОГ'),
+        KeyboardButton(text='МОИ ЗАКАЗЫ'),
     ],
     [
         KeyboardButton(text='НАСТРОЙКИ'),
