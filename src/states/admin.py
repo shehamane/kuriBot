@@ -9,6 +9,7 @@ class UserInfo(StatesGroup):
     UsersList = State()
 
 
+
 class CatalogEdit(StatesGroup):
     CategoryChoosing = State()
     ProductsWatching = State()

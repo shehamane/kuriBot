@@ -5,7 +5,7 @@ from aiogram.types import Message, CallbackQuery
 from data.api_config import USERS_PAGE_VOLUME
 from filters.is_numeric import IsNumericFilterCallback, IsNumericFilter
 from keyboards.default import admin_panel_kb
-from keyboards.inline import get_users_list_kb, user_info_kb
+from keyboards.inline import get_users_list_kb, user_info_kb, get_orders_kb
 from states import UserInfo, AdminPanel
 
 from loader import dp
@@ -113,3 +113,11 @@ async def show_cart(call: CallbackQuery, state: FSMContext):
         text += f"\nСумма: {to_pay} р."
 
     await call.message.answer(text)
+
+
+@dp.callback_query_handler(text="history", state=UserInfo.UsersList)
+async def show_orders(call: CallbackQuery, state: FSMContext):
+    async with state.proxy() as state_data:
+        user = await db.get_user(state_data["user_id"])
+    await call.message.answer(f"История заказов пользователя {user.username}:",
+                              reply_markup=await get_orders_kb(user.id))
