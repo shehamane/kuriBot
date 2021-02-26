@@ -248,6 +248,10 @@ class DBCommands:
 
         return cart
 
+    async def get_cart(self, cart_id):
+        cart = await Cart.get(cart_id)
+        return cart
+
     async def get_cart_record(self, record_id):
         cart_record = await CartItem.get(record_id)
         return cart_record
@@ -299,7 +303,8 @@ class DBCommands:
         return number
 
     async def get_cart_price(self, cart_id):
-        products_prices = await db.select([Product.price, CartItem.amount]).select_from(Cart.join(CartItem).join(Product)).where(
+        products_prices = await db.select([Product.price, CartItem.amount]).select_from(
+            Cart.join(CartItem).join(Product)).where(
             Cart.id == cart_id).gino.all()
 
         total = 0
@@ -316,12 +321,22 @@ class DBCommands:
         cart_records = await CartItem.query.where(CartItem.cart_id == cart.id).gino.all()
         return cart_records
 
-    async def get_orders(self):
-        user_id = await self.get_id()
-        carts = await db.select([Cart.id, Order.date, Order.price]).select_from(Order.join(Cart).join(User)).where(
-            User.id == user_id).gino.all()
+    async def get_cart_items_by_cart_id(self, cart_id):
+        cart = await self.get_cart(cart_id)
+        cart_items = await CartItem.query.where(CartItem.cart_id == cart.id).gino.all()
+        return cart_items
+
+    async def get_orders(self, user_id):
+        if not user_id:
+            user_id = await self.get_id()
+        carts = await db.select([Order.id, Order.date, Order.price]).select_from(Order.join(Cart)).where(
+            Cart.user_id == user_id).gino.all()
 
         return carts
+
+    async def get_order(self, order_id):
+        order = await Order.get(order_id)
+        return order
 
     async def create_order(self):
         user_id = (await self.get_user_by_chat_id(types.User.get_current().id)).id
