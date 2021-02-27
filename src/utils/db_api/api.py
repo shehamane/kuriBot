@@ -261,10 +261,10 @@ class DBCommands:
 
     async def get_cart_page(self, page_num):
         cart = await self.get_current_cart()
-        cart_items = await db.select([Product.name, Product.price, CartItem.id, CartItem.amount]).select_from(
+        cart_items_info = await db.select([Product.name, Product.price, CartItem.id, CartItem.amount]).select_from(
             CartItem.join(Cart).join(Product)).where(Cart.id == cart.id).limit(CART_PAGE_VOLUME).offset(
             page_num * CART_PAGE_VOLUME).gino.all()
-        return cart_items
+        return cart_items_info
 
     async def count_cart(self, user_id=None):
         if not user_id:
@@ -273,10 +273,20 @@ class DBCommands:
         number = await db.select([db.func.count(CartItem.id)]).where(CartItem.cart_id == cart.id).gino.scalar()
         return number
 
+    async def get_cart_price(self, cart_id):
+        products_prices = await db.select([Product.price, CartItem.amount]).select_from(
+            Cart.join(CartItem).join(Product)).where(
+            Cart.id == cart_id).gino.all()
+
+        total = 0
+        for price, amount in products_prices:
+            total += price * amount
+        return total
+
     # CART ITEMS #########################################################################
     async def get_cart_item(self, record_id):
-        cart_record = await CartItem.get(record_id)
-        return cart_record
+        cart_item = await CartItem.get(record_id)
+        return cart_item
 
     async def get_cart_item_by_user(self, product_id):
         cart = await self.get_current_cart()
@@ -299,22 +309,12 @@ class DBCommands:
         await cart_item.update(amount=new_amount).apply()
 
     async def delete_cart_item(self, cart_item_id):
-        cart_record = await self.get_cart_item(cart_item_id)
-        await cart_record.delete()
+        cart_item = await self.get_cart_item(cart_item_id)
+        await cart_item.delete()
 
     async def get_cart_items_by_product(self, product_id):
         cart_items = await CartItem.query.where(CartItem.product_id == product_id).gino.all()
         return cart_items
-
-    async def get_cart_price(self, cart_id):
-        products_prices = await db.select([Product.price, CartItem.amount]).select_from(
-            Cart.join(CartItem).join(Product)).where(
-            Cart.id == cart_id).gino.all()
-
-        total = 0
-        for price, amount in products_prices:
-            total += price * amount
-        return total
 
     async def get_cart_items_by_user_id(self, user_id):
         cart = await self.get_users_current_cart(user_id)
@@ -326,6 +326,7 @@ class DBCommands:
         cart_items = await CartItem.query.where(CartItem.cart_id == cart.id).gino.all()
         return cart_items
 
+    # ORDERS ##################################################################################
     async def get_orders(self, user_id):
         if not user_id:
             user_id = (await self.get_current_user()).id

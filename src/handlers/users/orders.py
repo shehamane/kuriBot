@@ -3,7 +3,7 @@ from aiogram.dispatcher.filters import Text
 from aiogram.types import Message, CallbackQuery, InputFile, InputMediaPhoto
 
 from filters.is_numeric import IsNumericFilterCallback
-from keyboards.inline import get_cart_record_watching_kb, get_cart_kb, get_orders_kb
+from keyboards.inline import get_cart_item_watching_kb, get_cart_kb, get_orders_kb
 from keyboards.inline.general import back_kb
 from utils.misc.files import get_product_image_path
 from states import CartListing, Orders
