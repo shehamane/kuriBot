@@ -4,3 +4,4 @@ from .users_list import get_users_list_kb, user_info_kb
 from .admin_catalog import get_admin_subcategories_kb, get_admin_products_kb
 from .registration import registration_kb
 from .orders import get_orders_kb
+from .general import *

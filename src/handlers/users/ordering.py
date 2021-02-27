@@ -3,7 +3,6 @@ from aiogram.dispatcher.filters import Text
 from aiogram.types import Message, CallbackQuery
 
 from filters.is_numeric import IsNumericFilter
-from keyboards.default import main_menu_kb
 from keyboards.inline.general import confirmation_kb, confirmation_cancel_kb
 from loader import dp
 from states.ordering import Ordering
@@ -17,6 +16,9 @@ async def order(call: CallbackQuery):
 
 @dp.message_handler(Text(ignore_case=True, contains=['оформить заказ']), state='*')
 async def confirm_address(message: Message):
+    if not await db.count_cart():
+        await message.answer("Ваша корзина пуста!")
+        return
     user = await db.get_current_user()
     await message.answer(f"Адрес доставки: {user.address}", reply_markup=confirmation_kb)
 
@@ -68,7 +70,7 @@ async def change_phone_number(message: Message):
 @dp.callback_query_handler(text="yes", state=Ordering.PhoneNumberConfirmation)
 async def confirm_cart(call: CallbackQuery):
     user = await db.get_current_user()
-    cart = await db.get_cart_by_id(user.id)
+    cart = await db.get_cart_items_by_user(user.id)
 
     text = "===============ЗАКАЗ===============\n\n"
     to_pay = 0
@@ -84,6 +86,7 @@ async def confirm_cart(call: CallbackQuery):
 
     await call.message.answer(text, reply_markup=confirmation_cancel_kb)
     await Ordering.OrderConfrimation.set()
+
 
 @dp.callback_query_handler(text="yes", state=Ordering.OrderConfrimation)
 async def create_order(call: CallbackQuery, state: FSMContext):

@@ -5,7 +5,7 @@ from gino import Gino
 from sqlalchemy import Column, Sequence, BigInteger, String, sql, Integer, Text, Boolean, and_, ForeignKey, Date, not_
 from sqlalchemy.orm import relationship
 
-from data.api_config import CART_PAGE_VOLUME, USERS_PAGE_VOLUME, PRODUCTS_PAGE_VOLUME, CATALOG_PAGE_VOLUME
+from data.api_config import CART_PAGE_VOLUME, USERS_PAGE_VOLUME
 from utils.misc.files import delete_product_image
 
 db = Gino()
@@ -316,21 +316,21 @@ class DBCommands:
         cart_items = await CartItem.query.where(CartItem.product_id == product_id).gino.all()
         return cart_items
 
-    async def get_cart_items_by_user_id(self, user_id):
+    async def get_cart_items_by_user(self, user_id):
         cart = await self.get_users_current_cart(user_id)
         cart_items = await CartItem.query.where(CartItem.cart_id == cart.id).gino.all()
         return cart_items
 
-    async def get_cart_items_by_cart_id(self, cart_id):
+    async def get_cart_items_by_cart(self, cart_id):
         cart = await self.get_cart(cart_id)
         cart_items = await CartItem.query.where(CartItem.cart_id == cart.id).gino.all()
         return cart_items
 
     # ORDERS ##################################################################################
-    async def get_orders(self, user_id):
+    async def get_orders(self, user_id=None):
         if not user_id:
             user_id = (await self.get_current_user()).id
-        carts = await db.select([Order.id, Order.date, Order.price]).select_from(Order.join(Cart)).where(
+        carts = await db.select([Order]).select_from(Order.join(Cart)).where(
             Cart.user_id == user_id).gino.all()
 
         return carts
