@@ -1,5 +1,7 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
+from utils.db_api.api import Category
+
 
 async def get_product_watching_kb(page, total, amount):
     return InlineKeyboardMarkup(
@@ -14,7 +16,7 @@ async def get_product_watching_kb(page, total, amount):
             ],
             [
                 InlineKeyboardButton(text="<", callback_data="previous"),
-                InlineKeyboardButton(text=f"{page}/{total}", callback_data="page"),
+                InlineKeyboardButton(text=f"{page + 1}/{total}", callback_data="page"),
                 InlineKeyboardButton(text=">", callback_data="next"),
             ],
             [
@@ -33,16 +35,8 @@ return_to_catalog_button = InlineKeyboardMarkup(
     ]
 )
 
-cancel_button = InlineKeyboardMarkup(
-    inline_keyboard=[
-        [
-            InlineKeyboardButton(text="Отмена", callback_data="cancel"),
-        ]
-    ]
-)
 
-
-async def get_subcategories_kb(subcategories):
+async def get_subcategories_kb(subcategories: [Category]):
     keyboard = InlineKeyboardMarkup(inline_keyboard=[])
     for subcategory in subcategories:
         keyboard.inline_keyboard.append(

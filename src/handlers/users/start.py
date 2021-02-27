@@ -1,15 +1,15 @@
 from aiogram import types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.builtin import CommandStart
-from aiogram.types import InlineKeyboardButton, CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message
 
-from filters.is_alpha import IsAlphaFilterCallback, IsAlphaFilter
-from filters.is_numeric import IsNumericFilterCallback, IsNumericFilter
-from keyboards.default import main_menu_kb
+from filters.is_alpha import IsAlphaFilter
+from filters.is_numeric import IsNumericFilter
 from keyboards.inline import registration_kb
 from keyboards.inline.registration import register_kb
-from loader import dp
 from states.registration import Registration
+
+from loader import dp
 from utils.db_api.api import db_api as db
 
 
@@ -19,11 +19,11 @@ async def bot_start(message: types.Message, state: FSMContext):
                                f'Зарегестриуйся в системе...',
                                reply_markup=register_kb)
     await state.update_data({"user": await db.create_user(),
-                             "reg_message": msg})
+                             "main_message": msg})
 
 
 @dp.callback_query_handler(text="register")
-async def send_registration_page(call: CallbackQuery, state: FSMContext):
+async def send_registration_page(call: CallbackQuery):
     await Registration.Menu.set()
 
     await call.message.edit_text("Введите информацию в следующие поля:",
@@ -31,7 +31,7 @@ async def send_registration_page(call: CallbackQuery, state: FSMContext):
 
 
 @dp.callback_query_handler(text="name", state=Registration.Menu)
-async def request_name(call: CallbackQuery, state: FSMContext):
+async def request_name(call: CallbackQuery):
     await Registration.NameRequest.set()
 
     await call.message.edit_text("Введите ваше настоящее имя...")
@@ -41,15 +41,14 @@ async def request_name(call: CallbackQuery, state: FSMContext):
 async def set_name(message: Message, state: FSMContext):
     async with state.proxy() as state_data:
         await state_data["user"].update(fullname=message.text).apply()
-
-        await state_data["reg_message"].edit_text("Введите информацию в следующие поля:",
-                                                  reply_markup=registration_kb)
+        await state_data["main_message"].edit_text("Введите информацию в следующие поля:",
+                                                   reply_markup=registration_kb)
 
     await Registration.Menu.set()
 
 
 @dp.callback_query_handler(text="phone_number", state=Registration.Menu)
-async def phone_number_request(call: CallbackQuery, state: FSMContext):
+async def phone_number_request(call: CallbackQuery):
     await Registration.PhoneRequest.set()
 
     await call.message.edit_text("Введите ваш номер телефона (11 цифр)")
@@ -59,18 +58,18 @@ async def phone_number_request(call: CallbackQuery, state: FSMContext):
 async def set_phone_number(message: Message, state: FSMContext):
     async with state.proxy() as state_data:
         if len(message.text) != 11:
-            await state_data["reg_message"].edit_text("Номер должен содержать 11 цифр. Повторите попытку")
+            await state_data["main_message"].edit_text("Номер должен содержать 11 цифр. Повторите попытку")
             return
         await state_data["user"].update(phone_number=message.text).apply()
 
-        await state_data["reg_message"].edit_text("Введите информацию в следующие поля:",
-                                                  reply_markup=registration_kb)
+        await state_data["main_message"].edit_text("Введите информацию в следующие поля:",
+                                                   reply_markup=registration_kb)
 
     await Registration.Menu.set()
 
 
 @dp.callback_query_handler(text="address", state=Registration.Menu)
-async def phone_number_request(call: CallbackQuery, state: FSMContext):
+async def phone_number_request(call: CallbackQuery):
     await Registration.AddressRequest.set()
 
     await call.message.edit_text("Введите ваш адрес")
@@ -81,8 +80,8 @@ async def set_phone_number(message: Message, state: FSMContext):
     async with state.proxy() as state_data:
         await state_data["user"].update(address=message.text).apply()
 
-        await state_data["reg_message"].edit_text("Введите информацию в следующие поля:",
-                                                  reply_markup=registration_kb)
+        await state_data["main_message"].edit_text("Введите информацию в следующие поля:",
+                                                   reply_markup=registration_kb)
 
     await Registration.Menu.set()
 

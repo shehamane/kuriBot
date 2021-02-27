@@ -1,5 +1,5 @@
 from aiogram.types import Message
-from aiogram.dispatcher.filters import Command, Text
+from aiogram.dispatcher.filters import Command
 from keyboards.default import main_menu_kb
 
 from loader import dp

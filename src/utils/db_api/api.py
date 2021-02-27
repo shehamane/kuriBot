@@ -190,8 +190,13 @@ class DBCommands:
         return product
 
     async def get_products_by_page(self, parent_id, page_num, products_number):
-        product = await Product.query.where(Product.category_id == parent_id).limit(products_number).offset(
-            page_num * products_number).gino.first()
+        products = await Product.query.where(Product.category_id == parent_id).limit(products_number).offset(
+            page_num * products_number).gino.all()
+        return products
+
+    async def get_product_by_page(self, parent_id, page_num):
+        product = await Product.query.where(Product.category_id == parent_id).limit(1).offset(
+            page_num).gino.first()
         return product
 
     async def create_product(self, name, description, price, category_id):
@@ -272,6 +277,12 @@ class DBCommands:
     async def get_cart_item(self, record_id):
         cart_record = await CartItem.get(record_id)
         return cart_record
+
+    async def get_cart_item_by_user(self, product_id):
+        cart = await self.get_current_cart()
+        cart_item = await CartItem.query.where(
+            and_(CartItem.cart_id == cart.id, CartItem.product_id == product_id)).gino.first()
+        return cart_item
 
     async def create_cart_item(self, product_id, amount):
         cart = await self.get_current_cart()

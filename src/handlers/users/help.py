@@ -12,7 +12,7 @@ from utils.misc import rate_limit
 async def bot_help(message: types.Message):
     text = [
         'Список команд: ',
-        '/start - Начать диалог',
+        '/start - Регистрация',
         '/help - Получить справку',
         '/menu - Открыть меню',
         '/admin - Панель администратора',

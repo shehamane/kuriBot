@@ -1,7 +1,8 @@
-from aiogram import types
+from aiogram.types import Message
+
 from loader import dp
 
 
 @dp.message_handler()
-async def shrug(message: types.Message):
+async def shrug(message: Message):
     await message.answer("не понял.")
