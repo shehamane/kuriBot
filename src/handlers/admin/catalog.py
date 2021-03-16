@@ -9,7 +9,6 @@ from keyboards.inline import get_admin_products_kb
 from keyboards.inline.admin_catalog import get_admin_subcategories_kb, empty_category_kb
 from keyboards.inline.general import cancel_kb
 from states import AdminPanel, CatalogEdit
-from utils.misc.files import download_image
 
 from data.api_config import PRODUCTS_PAGE_VOLUME
 from data.media_config import IMG_CATALOG_PATH
