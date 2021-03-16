@@ -1,8 +1,18 @@
 import os
 import shutil
-import time
 
 from aiogram.types import PhotoSize
+
+
+async def gen_img_files():
+    dir_path = "img/products"
+    if not os.path.exists(dir_path):
+        os.mkdir(dir_path)
+
+    if not os.path.exists("img/catalog.png"):
+        shutil.copyfile("img/default.png", "img/catalog.png")
+    if not os.path.exists("img/cart.png"):
+        shutil.copyfile("img/default.png", "img/cart.png")
 
 
 async def download_product_image(product_id, image: PhotoSize):

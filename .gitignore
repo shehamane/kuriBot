@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+
 # C extensions
 *.so
 
@@ -131,5 +132,7 @@ dmypy.json
 
 pgdata
 
-img/
+img/products/*
+img/cart.png
+img/catalog.png
 database/

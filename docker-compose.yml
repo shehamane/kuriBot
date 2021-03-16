@@ -20,7 +20,7 @@ services:
     restart: always
     ports:
       - 8080:8080
-
+#
   tgbot:
     container_name: bot
     build:
@@ -29,7 +29,5 @@ services:
     restart: always
     depends_on:
       - db
-
-
     env_file:
       - "src/.env"

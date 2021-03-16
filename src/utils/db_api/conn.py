@@ -7,16 +7,10 @@ from .api import db, db_api, Category
 
 from data.config import PG_HOST, PG_USER, PG_PASS, PG_DBNAME
 
-logging.basicConfig(format=u'%(filename)s [LINE:%(lineno)d] #%(levelname)-8s [%(asctime)s]  %(message)s',
-                    level=logging.INFO)
-
 
 async def create_db():
-    print("===DEBUG LOG STARTS HERE===\n")
-    print(f"postgresql://{PG_USER}:{PG_PASS}@{PG_HOST}/{PG_DBNAME}")
     await db.set_bind(f"postgresql://{PG_USER}:{PG_PASS}@{PG_HOST}/{PG_DBNAME}")
     db.gino: GinoSchemaVisitor
-    # await db.gino.drop_all()
     await db.gino.create_all()
 
     if not (await db_api.get_category(1)):

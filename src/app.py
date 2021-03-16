@@ -1,11 +1,12 @@
-from time import sleep
-
+from utils.misc.files import gen_img_files
 
 async def on_startup(dp):
     import filters
     import middlewares
     filters.setup(dp)
     middlewares.setup(dp)
+
+    await gen_img_files()
 
     from utils.notify_admins import on_startup_notify
     await on_startup_notify(dp)
