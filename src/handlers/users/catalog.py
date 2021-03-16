@@ -65,8 +65,9 @@ async def show_next_product(call: CallbackQuery, state: FSMContext):
                                                     state_data["page_number"])
         state_data["product_id"] = next_product.id
 
-        await send_product_info(call.message, next_product, state_data["page_number"],
-                                state_data["page_total"])
+        await send_product_info(call.message, next_product)
+        await call.message.edit_reply_markup(
+            await get_product_watching_kb(state_data["page_number"], state_data["page_total"], 1))
 
 
 @dp.callback_query_handler(state=CatalogListing.ProductWatching, text="previous")
@@ -81,7 +82,9 @@ async def show_previous_product(call: CallbackQuery, state: FSMContext):
                                                         state_data["page_number"])
         state_data["product_id"] = previous_product.id
 
-        await send_product_info(call.message, previous_product, state_data["page_number"], state_data["page_total"])
+        await send_product_info(call.message, previous_product)
+        await call.message.edit_reply_markup(
+            await get_product_watching_kb(state_data["page_number"], state_data["page_total"], 1))
 
 
 @dp.callback_query_handler(state=CatalogListing.ProductWatching, text="increase")
@@ -123,7 +126,7 @@ async def add_to_cart(call: CallbackQuery, state: FSMContext):
                                                                                    state_data["amount"]))
 
 
-async def send_product_info(message: Message, product, page_number, page_total):
+async def send_product_info(message: Message, product):
     text = f'{product.name}\n' \
            f'{product.description}\n' \
            f'Цена: {product.price} р.'
@@ -134,7 +137,7 @@ async def send_product_info(message: Message, product, page_number, page_total):
     else:
         await message.edit_media(InputMediaPhoto(InputFile(IMG_DEFAULT_PATH)))
 
-    await message.edit_caption(text, reply_markup=await get_product_watching_kb(page_number, page_total, 1))
+    await message.edit_caption(text)
 
 
 async def send_category_info(message: Message, category, state):
@@ -153,4 +156,6 @@ async def send_category_info(message: Message, category, state):
         await state.update_data({"product_id": product.id, "page_number": 0,
                                  "amount": 1, "page_total": page_total})
 
-        await send_product_info(message, product, 0, page_total)
+        await send_product_info(message, product)
+        await message.edit_reply_markup(
+            await get_product_watching_kb(0, page_total, 1))

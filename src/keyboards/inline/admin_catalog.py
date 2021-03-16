@@ -49,7 +49,7 @@ async def get_admin_products_kb(products, page, total):
     kb.inline_keyboard.append(
         [
             InlineKeyboardButton(text="<", callback_data="previous"),
-            InlineKeyboardButton(text=f"{page}/{total}", callback_data="page"),
+            InlineKeyboardButton(text=f"{page+1}/{total}", callback_data="page"),
             InlineKeyboardButton(text=">", callback_data="next"),
         ]
     )

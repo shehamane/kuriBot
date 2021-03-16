@@ -11,7 +11,7 @@ from loader import dp
 from utils.db_api.api import db_api as db
 
 
-@dp.message_handler(Text(contains=['мои заказы'], ignore_case=True))
+@dp.message_handler(Text(contains=['мои заказы'], ignore_case=True), state='*')
 async def show_orders(message: Message, state: FSMContext):
     await state.finish()
     await Orders.OrderList.set()

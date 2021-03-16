@@ -1,8 +1,8 @@
 version: '3.1'
 
 services:
-
   db:
+    container_name: db
     image: postgres
     restart: always
     environment:
@@ -15,7 +15,21 @@ services:
       - 5432:5432
 
   adminer:
+    container_name: adminer
     image: adminer
     restart: always
     ports:
       - 8080:8080
+
+  tgbot:
+    container_name: bot
+    build:
+      context: .
+    command: python src/app.py
+    restart: always
+    depends_on:
+      - db
+
+
+    env_file:
+      - "src/.env"

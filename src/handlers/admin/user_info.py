@@ -6,7 +6,7 @@ from data.api_config import USERS_PAGE_VOLUME
 from filters.is_numeric import IsNumericFilterCallback, IsNumericFilter
 from keyboards.default import admin_panel_kb
 from keyboards.inline import get_users_list_kb, user_info_kb, get_orders_kb
-from states import UserInfo, AdminPanel
+from states import UserInfo, AdminPanel, Orders
 
 from loader import dp
 from utils.db_api.api import db_api as db
@@ -102,11 +102,13 @@ async def show_user_info(message: Message, state: FSMContext):
 @dp.callback_query_handler(text="cart", state=UserInfo.UsersList)
 async def show_cart(call: CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
-        cart = await db.get_cart_by_id(data["user_id"])
+        cart = await db.get_users_current_cart(data["user_id"])
+        cart_items = await db.get_cart_items_by_cart(cart.id)
 
         text = f"корзина пользователя {data['user_id']}\n\n"
         to_pay = 0
-        for record in cart:
+
+        for record in cart_items:
             product = await db.get_product(record.product_id)
             to_pay += product.price * record.amount
             text += f"{product.name} - {record.amount} | {product.price * record.amount} р.\n"
@@ -120,4 +122,5 @@ async def show_orders(call: CallbackQuery, state: FSMContext):
     async with state.proxy() as state_data:
         user = await db.get_user(state_data["user_id"])
     await call.message.answer(f"История заказов пользователя {user.username}:",
-                              reply_markup=await get_orders_kb(user.id))
+                              reply_markup=await get_orders_kb(await db.get_orders(user.id)))
+    await Orders.OrderList.set()

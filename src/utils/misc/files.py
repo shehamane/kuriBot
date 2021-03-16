@@ -6,14 +6,14 @@ from aiogram.types import PhotoSize
 
 
 async def download_product_image(product_id, image: PhotoSize):
-    dir_path = "../img/products/" + str(product_id)
+    dir_path = "img/products/" + str(product_id)
     if not os.path.exists(dir_path):
         os.mkdir(dir_path)
     await image.download(dir_path + "/" + str("MAIN.jpg"))
 
 
 async def delete_product_image(product_id):
-    dir_path = "../img/products/" + str(product_id)
+    dir_path = "img/products/" + str(product_id)
     if os.path.exists(dir_path):
         shutil.rmtree(dir_path)
         return 0
@@ -21,7 +21,7 @@ async def delete_product_image(product_id):
 
 
 async def get_product_image_path(product_id):
-    dir_path = "../img/products/" + str(product_id)
+    dir_path = "img/products/" + str(product_id)
     if not os.path.exists(dir_path):
         return False
     else:
@@ -31,5 +31,5 @@ async def get_product_image_path(product_id):
 
 
 async def download_image(path, image: PhotoSize):
-    path = '../img/' + path
+    path = 'img/' + path
     await image.download(path)

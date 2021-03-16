@@ -166,7 +166,7 @@ class DBCommands:
             for sc in subcategories:
                 await self.delete_category(sc.id)
         else:
-            products = await self.get_category_products(category_id)
+            products = await self.get_products_by_category(category_id)
             for product in products:
                 await self.delete_product(product.id)
         await category.delete()
@@ -175,6 +175,11 @@ class DBCommands:
         number = await db.select([db.func.count(Product.id)]).where(
             Product.category_id == category_id).gino.scalar()
         return number
+
+    async def is_empty_category(self, category_id):
+        products_num = await self.count_products_in_category(category_id)
+        categories_num = await self.count_subcategories(category_id)
+        return not (products_num or categories_num)
 
     async def get_products_by_category(self, category_id):
         products = await Product.query.where(Product.category_id == category_id).gino.all()

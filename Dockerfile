@@ -1,7 +1,7 @@
 FROM python:latest
 
-RUN mkdir /src
-WORKDIR /src
-COPY requirements.txt /src/
+RUN mkdir /build
+WORKDIR /build
+COPY requirements.txt /build/
 RUN pip install -r requirements.txt
-COPY . /src
+COPY . /build
