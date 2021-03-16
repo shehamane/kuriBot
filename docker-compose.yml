@@ -21,13 +21,13 @@ services:
     ports:
       - 8080:8080
 #
-  tgbot:
-    container_name: bot
-    build:
-      context: .
-    command: python src/app.py
-    restart: always
-    depends_on:
-      - db
-    env_file:
-      - "src/.env"
+#  tgbot:
+#    container_name: bot
+#    build:
+#      context: .
+#    command: python src/app.py
+#    restart: always
+#    depends_on:
+#      - db
+#    env_file:
+#      - "src/.env"

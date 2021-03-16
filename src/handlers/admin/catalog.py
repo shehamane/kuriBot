@@ -24,6 +24,8 @@ async def show_admin_catalog(message: Message, state: FSMContext):
 
     page_total = int(
         ceil(await db.count_products_in_category(1) / PRODUCTS_PAGE_VOLUME))
+    if not page_total:
+        page_total = 1
     await state.update_data({"category_id": 1, "page_num": 0, "page_total": page_total})
 
     main = await db.get_category(1)
@@ -35,7 +37,7 @@ async def show_admin_catalog(message: Message, state: FSMContext):
     msg = await message.answer_photo(InputFile(IMG_CATALOG_PATH), caption="КАТАЛОГ")
     await send_category_admin_info(msg, state, main)
 
-    await state.update_data({"main_message": msg})
+    await state.update_data({"main_message": msg, "is_photo": False})
 
 
 @dp.callback_query_handler(text="cancel", state=[CatalogEdit.CategoryChoosing, CatalogEdit.ProductsWatching])
@@ -87,7 +89,6 @@ async def return_to_category(call: CallbackQuery, state: FSMContext):
 async def get_catalog_image(message: Message, state: FSMContext):
     await message.photo[-1].download(IMG_CATALOG_PATH)
     async with state.proxy() as state_data:
-        await state_data["main_message"].edit_media(InputMediaPhoto(InputFile(IMG_CATALOG_PATH)))
         if await db.is_empty_category(state_data["category_id"]):
             kb = empty_category_kb
         else:
@@ -95,7 +96,10 @@ async def get_catalog_image(message: Message, state: FSMContext):
                 await db.get_subcategories(state_data["category_id"])
             )
 
-    await state_data["main_message"].edit_caption("Изображение изменено!", reply_markup=kb)
+        state_data["main_message"] = \
+            await message.answer_photo(InputFile(IMG_CATALOG_PATH), caption="Изображение изменено!",
+                                       reply_markup=kb)
+
     await CatalogEdit.CategoryChoosing.set()
 
 

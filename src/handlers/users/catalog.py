@@ -65,7 +65,7 @@ async def show_next_product(call: CallbackQuery, state: FSMContext):
                                                     state_data["page_number"])
         state_data["product_id"] = next_product.id
 
-        await send_product_info(call.message, next_product)
+        await send_product_info(call.message, next_product, False)
         await call.message.edit_reply_markup(
             await get_product_watching_kb(state_data["page_number"], state_data["page_total"], 1))
 
@@ -82,7 +82,7 @@ async def show_previous_product(call: CallbackQuery, state: FSMContext):
                                                         state_data["page_number"])
         state_data["product_id"] = previous_product.id
 
-        await send_product_info(call.message, previous_product)
+        await send_product_info(call.message, previous_product, False)
         await call.message.edit_reply_markup(
             await get_product_watching_kb(state_data["page_number"], state_data["page_total"], 1))
 
@@ -126,18 +126,27 @@ async def add_to_cart(call: CallbackQuery, state: FSMContext):
                                                                                    state_data["amount"]))
 
 
-async def send_product_info(message: Message, product):
+async def send_product_info(message: Message, product, new_msg=False):
     text = f'{product.name}\n' \
            f'{product.description}\n' \
            f'Цена: {product.price} р.'
 
     img_path = await get_product_image_path(product.id)
     if img_path:
-        await message.edit_media(InputMediaPhoto(InputFile(img_path)))
+        if not new_msg:
+            await message.edit_media(InputMediaPhoto(InputFile(img_path)))
+        else:
+            main_message = await message.answer_photo(InputFile(img_path), caption=text)
+            return main_message
     else:
-        await message.edit_media(InputMediaPhoto(InputFile(IMG_DEFAULT_PATH)))
+        if not new_msg:
+            await message.edit_media(InputMediaPhoto(InputFile(IMG_DEFAULT_PATH)))
+        else:
+            main_message = await message.answer_photo(InputFile(IMG_DEFAULT_PATH), caption=text)
+            return main_message
 
     await message.edit_caption(text)
+    return message
 
 
 async def send_category_info(message: Message, category, state):
@@ -156,6 +165,6 @@ async def send_category_info(message: Message, category, state):
         await state.update_data({"product_id": product.id, "page_number": 0,
                                  "amount": 1, "page_total": page_total})
 
-        await send_product_info(message, product)
+        await send_product_info(message, product, False)
         await message.edit_reply_markup(
             await get_product_watching_kb(0, page_total, 1))

@@ -94,6 +94,7 @@ async def change_image(message: Message, state: FSMContext):
     async with state.proxy() as state_data:
         await download_product_image(state_data["product_id"], message.photo[-1])
 
+    await state.update_data({"is_photo": True})
     await show_last_product_info(None, state)
 
 
@@ -105,5 +106,6 @@ async def show_last_product_info(_, state: FSMContext):
     async with state.proxy() as state_data:
         product = await db.get_product(state_data["product_id"])
 
-        await send_product_info(state_data["main_message"], product)
+        state_data["main_message"] = await send_product_info(state_data["main_message"], product,
+                                                             state_data["is_photo"])
         await state_data["main_message"].edit_reply_markup(product_info_kb)

@@ -1,9 +1,10 @@
 from math import ceil
 
 from aiogram.dispatcher import FSMContext
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, InputFile
 
 from data.api_config import PRODUCTS_PAGE_VOLUME
+from data.media_config import IMG_CATALOG_PATH
 from keyboards.inline import get_admin_products_kb
 from keyboards.inline.admin_catalog import download_image_kb
 from keyboards.inline.general import cancel_kb
@@ -70,10 +71,14 @@ async def change_state(call: CallbackQuery, state: FSMContext):
 async def get_product_image(message: Message, state: FSMContext):
     async with state.proxy() as state_data:
         await download_product_image(state_data["product_id"], message.photo[-1])
-        await state_data["main_message"].edit_caption(caption="Изображение добавлено!",
-                                                      reply_markup=await get_admin_products_kb(
-                                                          await db.get_products_by_page(
-                                                              state_data["category_id"], 0, PRODUCTS_PAGE_VOLUME),
-                                                          state_data["page_num"], state_data["page_total"]))
+        state_data["main_message"] = await message.answer_photo(
+            InputFile(IMG_CATALOG_PATH),
+            caption="Продукт успешно создан!!",
+            reply_markup=await get_admin_products_kb(
+                await db.get_products_by_page(
+                    state_data["category_id"],
+                    state_data["page_num"],
+                    PRODUCTS_PAGE_VOLUME),
+                state_data["page_num"], state_data["page_total"]))
 
         await CatalogEdit.ProductsWatching.set()

@@ -14,7 +14,7 @@ from states import CatalogEdit
 from utils.db_api.api import db_api as db
 
 
-@dp.callback_query_handler(text=["new", "new_category"], state=CatalogEdit.CategoryChoosing)
+@dp.callback_query_handler(text=["new", "new_category"], state=[CatalogEdit.CategoryChoosing, CatalogEdit.ProductsWatching])
 async def name_request(call: CallbackQuery):
     await CatalogEdit.CategoryNameRequest.set()
     await call.message.edit_caption("Введите название новой категории", reply_markup=cancel_kb)
@@ -35,9 +35,21 @@ async def create_new_category(message: Message, state: FSMContext):
 async def confirm_deletion(call: CallbackQuery, state: FSMContext):
     async with state.proxy() as state_data:
         if state_data["category_id"] == 1:
+            if await db.is_empty_category(1):
+                kb = empty_category_kb
+            else:
+                main = await db.get_category(1)
+                if main.is_parent:
+                    kb = await get_admin_subcategories_kb(
+                        await db.get_subcategories(1))
+                else:
+                    kb = await get_admin_products_kb(
+                        await db.get_products_by_page(1,
+                                                      state_data["page_num"],
+                                                      PRODUCTS_PAGE_VOLUME),
+                        state_data["page_num"], state_data["page_total"])
             await call.message.edit_caption("Невозможно удалить главную категорию.",
-                                            reply_markup=await get_admin_subcategories_kb(
-                                                await db.get_subcategories(state_data["category_id"])))
+                                            reply_markup=kb)
             return
 
     await CatalogEdit.CategoryDeletionConfirmation.set()
