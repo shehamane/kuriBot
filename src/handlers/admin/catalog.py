@@ -86,7 +86,7 @@ async def return_to_category(call: CallbackQuery, state: FSMContext):
 
 @dp.message_handler(content_types=['photo'], state=CatalogEdit.CatalogImageRequest)
 async def get_catalog_image(message: Message, state: FSMContext):
-    await download_image("catalog.jpg", message.photo[-1])
+    await message.photo[-1].download(IMG_CATALOG_PATH)
     async with state.proxy() as state_data:
         await state_data["main_message"].edit_media(InputMediaPhoto(InputFile(IMG_CATALOG_PATH)))
         if await db.is_empty_category(state_data["category_id"]):

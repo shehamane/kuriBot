@@ -38,8 +38,3 @@ async def get_product_image_path(product_id):
         img_path = os.listdir(dir_path)[0]
         path = dir_path + "/" + os.path.relpath(img_path)
         return path
-
-
-async def download_image(path, image: PhotoSize):
-    path = 'img/' + path
-    await image.download(path)
