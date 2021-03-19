@@ -124,3 +124,8 @@ async def show_orders(call: CallbackQuery, state: FSMContext):
     await call.message.answer(f"История заказов пользователя {user.username}:",
                               reply_markup=await get_orders_kb(await db.get_orders(user.id)))
     await Orders.OrderList.set()
+
+
+@dp.callback_query_handler(text="cancel", state=Orders.OrderList)
+async def back_to_users_list(call: CallbackQuery, state: FSMContext):
+    await show_users_list(call.message, state)
