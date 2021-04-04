@@ -30,6 +30,7 @@ async def show_users_list(message: Message, state: FSMContext):
 @dp.callback_query_handler(state=UserInfo.UsersList, text="back")
 async def return_to_admin_panel(call: CallbackQuery, state: FSMContext):
     await call.message.answer("Вы вернулись в панель администратора", reply_markup=admin_panel_kb)
+    await state.finish()
     await AdminPanel.AdminPanel.set()
     return
 
@@ -74,10 +75,16 @@ async def show_user_info(message: Message, state: FSMContext):
                f"username: {user.username}\n" \
                f"fullname: {user.fullname}\n" \
                f"referral id: {user.referral_id if user.referral_id else 'отсутствует'}"
+        await message.answer(text, reply_markup=user_info_kb)
     else:
-        text = "Пользователя с таким id не существует"
+        await message.answer("Пользователя с таким id не существует", reply_markup=user_info_kb)
 
-    await message.answer(text, reply_markup=user_info_kb)
+
+@dp.message_handler(Text(contains="отмена", ignore_case=True), state=UserInfo.UsersList)
+async def back_to_admin_panel(message: Message, state: FSMContext):
+    await message.answer("Вы вернулись в панель администратора.", reply_markup=admin_panel_kb)
+    await state.finish()
+    await AdminPanel.AdminPanel.set()
 
 
 @dp.message_handler(state=UserInfo.UsersList)
@@ -93,10 +100,10 @@ async def show_user_info(message: Message, state: FSMContext):
                f"username: {user.username}\n" \
                f"fullname: {user.fullname}\n" \
                f"referral id: {user.referral_id if user.referral_id else 'отсутствует'}"
-    else:
-        text = "Пользователя с таким юзернеймом не существует"
+        await message.answer(text, reply_markup=user_info_kb)
 
-    await message.answer(text, reply_markup=user_info_kb)
+    else:
+        await message.answer("Пользователя с таким юзернеймом не существует")
 
 
 @dp.callback_query_handler(text="cart", state=UserInfo.UsersList)
