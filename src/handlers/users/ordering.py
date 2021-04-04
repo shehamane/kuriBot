@@ -1,9 +1,12 @@
+from datetime import datetime
+
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
-from aiogram.types import Message, CallbackQuery, LabeledPrice, PreCheckoutQuery, ContentType
+from aiogram.types import Message, CallbackQuery, LabeledPrice, PreCheckoutQuery, ContentType, ShippingQuery
 
 from data.config import PAYMENT_TOKEN
-from data.shop_config import IS_PREPAYMENT, CURRENCY, NEED_NAME, NEED_EMAIL, NEED_PHONE_NUMBER, NEED_SHIPPING_ADDRESS
+from data.shop_config import IS_PREPAYMENT, CURRENCY, NEED_NAME, NEED_EMAIL, NEED_PHONE_NUMBER, NEED_SHIPPING_ADDRESS, \
+    RUSSIAN_POST_SHIPPING_OPTION, PICKUP_SHIPPING_OPTION
 from filters.is_numeric import IsNumericFilter
 from keyboards.inline.general import confirmation_kb, confirmation_cancel_kb
 from loader import dp, bot
@@ -70,16 +73,22 @@ async def change_phone_number(message: Message):
 
 
 @dp.callback_query_handler(text="yes", state=Ordering.PhoneNumberConfirmation)
-async def confirm_cart(call: CallbackQuery):
+async def confirm_cart(call: CallbackQuery, state: FSMContext):
     user = await db.get_current_user()
     cart = await db.get_cart_items_by_user(user.id)
 
     text = "===============ЗАКАЗ===============\n\n"
     to_pay = 0
+    prices = []
     for record in cart:
         product = await db.get_product(record.product_id)
         text += f"{product.name} x {record.amount} \t\t\t\t\t {product.price * record.amount}р.\n"
         to_pay += product.price * record.amount
+        prices.append(
+            LabeledPrice(label=product.name + f" x {record.amount}", amount=product.price * record.amount * 100))
+
+    async with state.proxy() as data:
+        data["prices"] = prices
 
     text += f"\nСумма: {to_pay}р.\n" \
             f"Адрес доставки: {user.address}\n" \
@@ -92,25 +101,38 @@ async def confirm_cart(call: CallbackQuery):
 
 @dp.callback_query_handler(text="yes", state=Ordering.OrderConfrimation)
 async def create_order(call: CallbackQuery, state: FSMContext):
+    async with state.proxy() as data:
+        prices = data["prices"]
+
     if IS_PREPAYMENT:
-        cart_id = (await db.get_current_cart()).id
         await call.message.answer("Оплатите сумму заказа")
-        await bot.send_invoice(chat_id=call.from_user.id, title="title", description="description",
-                               payload=cart_id, start_parameter=cart_id, currency=CURRENCY,
-                               prices=[
-                                   LabeledPrice(label="aaa", amount=10000),
-                               ],
+        await bot.send_invoice(chat_id=call.from_user.id, title=f"ЗАКАЗ ОТ {datetime.today()}",
+                               description='Или введите "Отмена"',
+                               payload=0, start_parameter=0, currency=CURRENCY,
+                               prices=prices,
                                provider_token=PAYMENT_TOKEN,
                                need_name=NEED_NAME,
                                need_email=NEED_EMAIL,
                                need_phone_number=NEED_PHONE_NUMBER,
-                               need_shipping_address=NEED_SHIPPING_ADDRESS)
+                               need_shipping_address=NEED_SHIPPING_ADDRESS,
+                               is_flexible=True)
         await Ordering.Payment.set()
+    else:
+        await db.create_order()
+        await call.message.answer("Заказ оформлен!")
+        await state.finish()
 
 
 @dp.pre_checkout_query_handler(lambda query: True, state=Ordering.Payment)
 async def checkout(query: PreCheckoutQuery):
     await bot.answer_pre_checkout_query(query.id, True)
+
+
+@dp.shipping_query_handler(lambda query: True, state=Ordering.Payment)
+async def process_shipping_query(query: ShippingQuery):
+    await bot.answer_shipping_query(query.id, ok=True, shipping_options=[
+        RUSSIAN_POST_SHIPPING_OPTION,
+        PICKUP_SHIPPING_OPTION])
 
 
 @dp.message_handler(content_types=ContentType.SUCCESSFUL_PAYMENT, state=Ordering.Payment)
