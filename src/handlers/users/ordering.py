@@ -1,10 +1,12 @@
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, LabeledPrice, PreCheckoutQuery, ContentType
 
+from data.config import PAYMENT_TOKEN
+from data.shop_config import IS_PREPAYMENT, CURRENCY, NEED_NAME, NEED_EMAIL, NEED_PHONE_NUMBER, NEED_SHIPPING_ADDRESS
 from filters.is_numeric import IsNumericFilter
 from keyboards.inline.general import confirmation_kb, confirmation_cancel_kb
-from loader import dp
+from loader import dp, bot
 from states.ordering import Ordering
 from utils.db_api.api import db_api as db
 
@@ -90,6 +92,29 @@ async def confirm_cart(call: CallbackQuery):
 
 @dp.callback_query_handler(text="yes", state=Ordering.OrderConfrimation)
 async def create_order(call: CallbackQuery, state: FSMContext):
+    if IS_PREPAYMENT:
+        cart_id = (await db.get_current_cart()).id
+        await call.message.answer("Оплатите сумму заказа")
+        await bot.send_invoice(chat_id=call.from_user.id, title="title", description="description",
+                               payload=cart_id, start_parameter=cart_id, currency=CURRENCY,
+                               prices=[
+                                   LabeledPrice(label="aaa", amount=10000),
+                               ],
+                               provider_token=PAYMENT_TOKEN,
+                               need_name=NEED_NAME,
+                               need_email=NEED_EMAIL,
+                               need_phone_number=NEED_PHONE_NUMBER,
+                               need_shipping_address=NEED_SHIPPING_ADDRESS)
+        await Ordering.Payment.set()
+
+
+@dp.pre_checkout_query_handler(lambda query: True, state=Ordering.Payment)
+async def checkout(query: PreCheckoutQuery):
+    await bot.answer_pre_checkout_query(query.id, True)
+
+
+@dp.message_handler(content_types=ContentType.SUCCESSFUL_PAYMENT, state=Ordering.Payment)
+async def proceed_successful_payment(message: Message, state: FSMContext):
     await db.create_order()
-    await call.message.answer("Заказ оформлен!")
+    await bot.send_message(chat_id=message.from_user.id, text="Спасибо за покупку!")
     await state.finish()

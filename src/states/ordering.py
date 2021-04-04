@@ -7,3 +7,4 @@ class Ordering(StatesGroup):
     PhoneNumberConfirmation = State()
     PhoneNumberRequest = State()
     OrderConfrimation = State()
+    Payment = State()

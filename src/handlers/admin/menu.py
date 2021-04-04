@@ -6,8 +6,10 @@ from keyboards.default import admin_panel_kb
 from loader import dp
 from states import AdminPanel
 
+from data.config import ADMIN_ID
 
-@dp.message_handler(Command("admin"), state='*')
+
+@dp.message_handler(Command("admin"), state='*', user_id=ADMIN_ID)
 async def show_admin_panel(message: Message, state: FSMContext):
     await state.finish()
     await AdminPanel.AdminPanel.set()
