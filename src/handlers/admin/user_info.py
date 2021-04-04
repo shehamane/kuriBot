@@ -5,8 +5,8 @@ from aiogram.types import Message, CallbackQuery
 from data.api_config import USERS_PAGE_VOLUME
 from filters.is_numeric import IsNumericFilterCallback, IsNumericFilter
 from keyboards.default import admin_panel_kb
-from keyboards.inline import get_users_list_kb, user_info_kb, get_orders_kb
-from states import UserInfo, AdminPanel, Orders
+from keyboards.inline import get_users_list_kb, user_info_kb, get_orders_kb, back_kb
+from states import UserInfo, AdminPanel
 
 from loader import dp
 from utils.db_api.api import db_api as db
@@ -128,11 +128,38 @@ async def show_cart(call: CallbackQuery, state: FSMContext):
 async def show_orders(call: CallbackQuery, state: FSMContext):
     async with state.proxy() as state_data:
         user = await db.get_user(state_data["user_id"])
+        state_data["username"] = user.username
     await call.message.answer(f"История заказов пользователя {user.username}:",
                               reply_markup=await get_orders_kb(await db.get_orders(user.id)))
-    await Orders.OrderList.set()
+    await UserInfo.OrdersList.set()
 
 
-@dp.callback_query_handler(text="cancel", state=Orders.OrderList)
+@dp.callback_query_handler(text="cancel", state=UserInfo.OrdersList)
 async def back_to_users_list(call: CallbackQuery, state: FSMContext):
     await show_users_list(call.message, state)
+
+
+@dp.callback_query_handler(IsNumericFilterCallback(), state=UserInfo.OrdersList)
+async def show_order_info(call: CallbackQuery):
+    await UserInfo.OrderInfo.set()
+
+    order = await db.get_order(int(call.data))
+    cart_items = await db.get_cart_items_by_cart(order.cart_id)
+
+    text = f"ЗАКАЗ ОТ {order.date}\n\n"
+    to_pay = 0
+    for cart_item in cart_items:
+        product = await db.get_product(cart_item.product_id)
+        text += f"{product.name} x {cart_item.amount} \t\t\t\t\t {product.price * cart_item.amount}р.\n"
+        to_pay += product.price * cart_item.amount
+    text += f"\nСумма: {to_pay}р.\n"
+
+    await call.message.edit_text(text, reply_markup=back_kb)
+
+
+@dp.callback_query_handler(text="back", state=UserInfo.OrderInfo)
+async def back_to_orders_list(call: CallbackQuery, state: FSMContext):
+    await UserInfo.OrdersList.set()
+    async with state.proxy() as state_data:
+        await call.message.edit_text(f"История заказов пользователя {state_data['username']}",
+                                     reply_markup=await get_orders_kb(await db.get_orders(state_data["user_id"])))

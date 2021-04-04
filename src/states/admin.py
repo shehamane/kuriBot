@@ -7,6 +7,8 @@ class AdminPanel(StatesGroup):
 
 class UserInfo(StatesGroup):
     UsersList = State()
+    OrdersList = State()
+    OrderInfo = State()
 
 
 class CatalogEdit(StatesGroup):

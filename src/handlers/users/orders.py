@@ -25,7 +25,7 @@ async def show_order_info(call: CallbackQuery):
     order = await db.get_order(int(call.data))
     cart_items = await db.get_cart_items_by_cart(order.cart_id)
 
-    text = f"=============== ЗАКАЗ ОТ {order.date} ===============\n\n"
+    text = f"ЗАКАЗ ОТ {order.date}\n\n"
     to_pay = 0
     for cart_item in cart_items:
         product = await db.get_product(cart_item.product_id)
