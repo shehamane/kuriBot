@@ -9,8 +9,8 @@ async def get_product_operating_kb(page, total, amount):
         inline_keyboard=[
             [
                 InlineKeyboardButton(text="-", callback_data="decrease"),
-                InlineKeyboardButton(text="+", callback_data="increase"),
                 InlineKeyboardButton(text=str(amount), callback_data="amount"),
+                InlineKeyboardButton(text="+", callback_data="increase"),
             ],
             [
                 InlineKeyboardButton(text="Добавить в корзину", callback_data="add_to_cart"),
