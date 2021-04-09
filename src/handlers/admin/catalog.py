@@ -48,25 +48,6 @@ async def return_to_admin_panel(call: CallbackQuery, state: FSMContext):
     await call.message.answer("Вы вернулись в панель администратора", reply_markup=admin_panel_kb)
 
 
-@dp.callback_query_handler(
-    state=[CatalogEdit.CategoryChoosing,
-           CatalogEdit.ProductsWatching], text="back")
-async def return_to_parent_catalog(call: CallbackQuery, state: FSMContext):
-    async with state.proxy() as state_data:
-        if state_data["category_id"] == 1:
-            await call.message.answer("Вы вернулись в панель администратора", reply_markup=admin_panel_kb)
-            await AdminPanel.AdminPanel.set()
-            return
-        else:
-            curr_category = await db.get_category(state_data["category_id"])
-
-    await CatalogEdit.CategoryChoosing.set()
-    await state.update_data({"category_id": curr_category.parent_id})
-
-    await call.message.edit_media(InputMediaPhoto(InputFile(IMG_CATALOG_PATH)))
-    await call.message.edit_reply_markup(
-        await get_admin_subcategories_kb(await db.get_subcategories(curr_category.parent_id)))
-
 
 @dp.callback_query_handler(text="change_image", state=CatalogEdit.CategoryChoosing)
 async def change_picture(_, state: FSMContext):

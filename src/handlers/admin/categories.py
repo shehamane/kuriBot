@@ -1,15 +1,16 @@
 from math import ceil
 
 from aiogram.dispatcher import FSMContext
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InputFile
 
+from data.media_config import IMG_CATALOG_PATH
 from handlers.admin.catalog import send_category_admin_info
 
-from filters.is_numeric import IsNumericFilterCallback
+from keyboards.default import admin_panel_kb
 from keyboards.inline import get_admin_products_kb
 from keyboards.inline.admin_catalog import get_admin_subcategories_kb, empty_category_kb
 from keyboards.inline.general import confirmation_kb, cancel_kb
-from states import CatalogEdit
+from states import CatalogEdit, AdminPanel
 
 from data.api_config import PRODUCTS_PAGE_VOLUME
 from utils.callback_datas import choose_category_cd
@@ -18,7 +19,8 @@ from utils.db_api.api import db_api as db
 from loader import dp
 
 
-@dp.callback_query_handler(text=["new", "new_category"], state=[CatalogEdit.CategoryChoosing, CatalogEdit.ProductsWatching])
+@dp.callback_query_handler(text=["new", "new_category"],
+                           state=[CatalogEdit.CategoryChoosing, CatalogEdit.ProductsWatching])
 async def name_request(call: CallbackQuery):
     await CatalogEdit.CategoryNameRequest.set()
     await call.message.edit_caption("Введите название новой категории", reply_markup=cancel_kb)
@@ -103,3 +105,24 @@ async def show_category(call: CallbackQuery, callback_data: dict, state: FSMCont
         await CatalogEdit.ProductsWatching.set()
 
     await send_category_admin_info(call.message, state, category)
+
+
+@dp.callback_query_handler(
+    state=[CatalogEdit.CategoryChoosing,
+           CatalogEdit.ProductsWatching], text="back")
+async def return_to_parent_category(call: CallbackQuery, state: FSMContext):
+    async with state.proxy() as state_data:
+        if state_data["category_id"] == 1:
+            await call.message.answer("Вы вернулись в панель администратора", reply_markup=admin_panel_kb)
+            await AdminPanel.AdminPanel.set()
+            return
+        else:
+            curr_category = await db.get_category(state_data["category_id"])
+
+    await CatalogEdit.CategoryChoosing.set()
+    await state.update_data({"category_id": curr_category.parent_id})
+
+    if state == CatalogEdit.ProductsWatching:
+        await call.message.edit_media(InputMediaPhoto(InputFile(IMG_CATALOG_PATH)))
+    await call.message.edit_reply_markup(
+        await get_admin_subcategories_kb(await db.get_subcategories(curr_category.parent_id)))
