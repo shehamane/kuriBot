@@ -3,15 +3,19 @@ from math import ceil
 from aiogram.dispatcher import FSMContext
 from aiogram.types import Message, CallbackQuery
 
-from data.api_config import PRODUCTS_PAGE_VOLUME
-from filters.is_numeric import IsNumericFilterCallback
 from handlers.admin.catalog import send_category_admin_info
+
+from filters.is_numeric import IsNumericFilterCallback
 from keyboards.inline import get_admin_products_kb
 from keyboards.inline.admin_catalog import get_admin_subcategories_kb, empty_category_kb
 from keyboards.inline.general import confirmation_kb, cancel_kb
-from loader import dp
 from states import CatalogEdit
+
+from data.api_config import PRODUCTS_PAGE_VOLUME
+from utils.callback_datas import choose_category_cd
+
 from utils.db_api.api import db_api as db
+from loader import dp
 
 
 @dp.callback_query_handler(text=["new", "new_category"], state=[CatalogEdit.CategoryChoosing, CatalogEdit.ProductsWatching])
@@ -83,9 +87,9 @@ async def cancel_deletion(call: CallbackQuery, state: FSMContext):
     await send_category_admin_info(call.message, state, category)
 
 
-@dp.callback_query_handler(IsNumericFilterCallback(), state=CatalogEdit.CategoryChoosing)
-async def show_category(call: CallbackQuery, state: FSMContext):
-    category_id = int(call.data)
+@dp.callback_query_handler(choose_category_cd.filter(), state=CatalogEdit.CategoryChoosing)
+async def show_category(call: CallbackQuery, callback_data: dict, state: FSMContext):
+    category_id = int(callback_data.get("category_id"))
     page_total = int(
         ceil(await db.count_products_in_category(category_id) / PRODUCTS_PAGE_VOLUME))
     if not page_total:
