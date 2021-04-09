@@ -1,5 +1,13 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
+start_button = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton("Старт", callback_data="start")
+        ]
+    ]
+)
+
 confirmation_kb = InlineKeyboardMarkup(
     inline_keyboard=[
         [
@@ -23,7 +31,7 @@ cancel_kb = InlineKeyboardMarkup(inline_keyboard=[
     ]
 ])
 
-back_kb = InlineKeyboardMarkup(inline_keyboard=[
+back_button = InlineKeyboardMarkup(inline_keyboard=[
     [
         InlineKeyboardButton("Назад", callback_data="back")
     ]

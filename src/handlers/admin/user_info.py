@@ -5,7 +5,7 @@ from aiogram.types import Message, CallbackQuery
 from data.api_config import USERS_PAGE_VOLUME
 from filters.is_numeric import IsNumericFilterCallback, IsNumericFilter
 from keyboards.default import admin_panel_kb
-from keyboards.inline import get_users_list_kb, user_info_kb, get_orders_kb, back_kb
+from keyboards.inline import get_users_list_kb, user_info_kb, get_orders_kb, back_button
 from states import UserInfo, AdminPanel
 
 from loader import dp
@@ -60,7 +60,6 @@ async def show_user_info(call: CallbackQuery, state: FSMContext):
 
     text = f"id: {user.id}\n" \
            f"username: {user.username}\n" \
-           f"fullname: {user.fullname}\n" \
            f"referral id: {user.referral_id if user.referral_id else 'отсутствует'}"
     await call.message.answer(text, reply_markup=user_info_kb)
 
@@ -154,7 +153,7 @@ async def show_order_info(call: CallbackQuery):
         to_pay += product.price * cart_item.amount
     text += f"\nСумма: {to_pay}р.\n"
 
-    await call.message.edit_text(text, reply_markup=back_kb)
+    await call.message.edit_text(text, reply_markup=back_button)
 
 
 @dp.callback_query_handler(text="back", state=UserInfo.OrderInfo)

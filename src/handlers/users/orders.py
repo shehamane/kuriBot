@@ -4,7 +4,7 @@ from aiogram.types import Message, CallbackQuery
 
 from filters.is_numeric import IsNumericFilterCallback
 from keyboards.inline import get_orders_kb
-from keyboards.inline.general import back_kb
+from keyboards.inline.general import back_button
 from states import Orders
 
 from loader import dp
@@ -33,7 +33,7 @@ async def show_order_info(call: CallbackQuery):
         to_pay += product.price * cart_item.amount
     text += f"\nСумма: {to_pay}р.\n"
 
-    await call.message.edit_text(text, reply_markup=back_kb)
+    await call.message.edit_text(text, reply_markup=back_button)
 
 
 @dp.callback_query_handler(text="back", state=Orders.OrderInfo)

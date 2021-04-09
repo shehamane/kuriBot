@@ -1,8 +1,7 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from utils.db_api.api import db_api as db, CartItem
 
 
-async def get_cart_item_watching_kb(amount):
+async def get_cart_item_operating_kb(amount):
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
@@ -16,7 +15,7 @@ async def get_cart_item_watching_kb(amount):
                 InlineKeyboardButton(text="Удалить", callback_data="delete"),
             ],
             [
-                InlineKeyboardButton(text="Вернуться в корзину", callback_data="cart"),
+                InlineKeyboardButton(text="Назад", callback_data="back"),
             ],
         ]
     )

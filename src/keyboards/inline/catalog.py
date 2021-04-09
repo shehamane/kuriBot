@@ -1,9 +1,10 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
+from utils.callback_datas import choose_category_cd
 from utils.db_api.api import Category
 
 
-async def get_product_watching_kb(page, total, amount):
+async def get_product_operating_kb(page, total, amount):
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
@@ -27,22 +28,13 @@ async def get_product_watching_kb(page, total, amount):
     )
 
 
-return_to_catalog_button = InlineKeyboardMarkup(
-    inline_keyboard=[
-        [
-            InlineKeyboardButton(text="Вернуться в каталог", callback_data="catalog"),
-        ]
-    ]
-)
-
-
 async def get_subcategories_kb(subcategories: [Category]):
     keyboard = InlineKeyboardMarkup(inline_keyboard=[])
     for subcategory in subcategories:
         keyboard.inline_keyboard.append(
             [
                 InlineKeyboardButton(text=f'{subcategory.name}',
-                                     callback_data=subcategory.id)
+                                     callback_data=choose_category_cd.new(category_id=subcategory.id))
             ]
         )
     keyboard.inline_keyboard.append(

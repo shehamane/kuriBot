@@ -18,10 +18,8 @@ class User(db.Model):
     id = Column(Integer, Sequence("user_id_seq"), primary_key=True)
     user_id = Column(BigInteger, unique=True)
     username = Column(String(30))
-    fullname = Column(String(50))
     referral_id = Column(Integer)
-    phone_number = Column(String(11))
-    address = Column(String(50))
+    balance = Column(Integer)
 
 
 User.carts = relationship("Cart", back_populates="user")
@@ -95,7 +93,7 @@ class Order(db.Model):
 
 class DBCommands:
     # USERS
-    async def create_user(self):
+    async def create_user(self, referral_id=None):
         user = types.User.get_current()
 
         old_user = await self.get_user_by_chat_id(user.id)
@@ -105,6 +103,8 @@ class DBCommands:
         new_user = User()
         new_user.user_id = user.id
         new_user.username = user.username
+        new_user.balance = 0
+        referral_id = referral_id
 
         await new_user.create()
         await self.create_cart()
