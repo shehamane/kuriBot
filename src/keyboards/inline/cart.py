@@ -1,5 +1,7 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
+from utils.callback_datas import choose_cart_item_cd
+
 
 async def get_cart_item_operating_kb(amount):
     return InlineKeyboardMarkup(
@@ -31,9 +33,9 @@ async def get_cart_kb(cart_items_info):
         keyboard.inline_keyboard.append(
             [
                 InlineKeyboardButton(text=f"{name} x {amount}",
-                                     callback_data=str(item_id)),
+                                     callback_data=choose_cart_item_cd.new(cart_item_id=item_id)),
                 InlineKeyboardButton(text=f"{amount * price} р.",
-                                     callback_data=str(item_id))
+                                     callback_data=choose_cart_item_cd.new(cart_item_id=item_id)),
             ]
         )
 

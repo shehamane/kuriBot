@@ -276,7 +276,7 @@ class DBCommands:
     async def count_cart(self, user_id=None):
         if not user_id:
             user_id = (await self.get_current_user()).id
-        cart = await self.get_users_current_cart(user_id)
+        cart = await self.get_current_cart(user_id)
         number = await db.select([db.func.count(CartItem.id)]).where(CartItem.cart_id == cart.id).gino.scalar()
         return number
 
@@ -324,7 +324,7 @@ class DBCommands:
         return cart_items
 
     async def get_cart_items_by_user(self, user_id):
-        cart = await self.get_users_current_cart(user_id)
+        cart = await self.get_current_cart(user_id)
         cart_items = await CartItem.query.where(CartItem.cart_id == cart.id).gino.all()
         return cart_items
 

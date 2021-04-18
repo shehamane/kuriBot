@@ -5,6 +5,7 @@ from aiogram.types import Message, CallbackQuery, InputFile, InputMediaPhoto
 from filters.is_numeric import IsNumericFilterCallback
 
 from keyboards.inline import get_cart_item_operating_kb, get_cart_kb, confirmation_kb
+from utils.callback_datas import choose_cart_item_cd
 
 from utils.misc.files import get_product_image_path
 from utils.db_api.api import db_api as db
@@ -64,12 +65,12 @@ async def clear_cart(call: CallbackQuery):
     await call.message.edit_caption("Корзина очищена", reply_markup=await get_cart_kb(await db.get_cart_page(0)))
 
 
-@dp.callback_query_handler(IsNumericFilterCallback(), state=Cart.CartItems)
-async def show_product(call: CallbackQuery, state: FSMContext):
+@dp.callback_query_handler(choose_cart_item_cd.filter(), state=Cart.CartItems)
+async def show_cart_item(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await Cart.ItemInfo.set()
 
-    cart_item_id = int(call.data)
-    cart_item = await db.get_cart_item(int(call.data))
+    cart_item_id = int(callback_data.get("cart_item_id"))
+    cart_item = await db.get_cart_item(cart_item_id)
     await state.update_data({"cart_item_id": cart_item_id})
 
     product = await db.get_product(cart_item.product_id)
