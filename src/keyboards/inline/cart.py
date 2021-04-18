@@ -40,7 +40,7 @@ async def get_cart_kb(cart_items_info):
     keyboard.inline_keyboard.append(
         [
             InlineKeyboardButton(text="<", callback_data="previous"),
-            InlineKeyboardButton(text="Отмена", callback_data="cancel"),
+            InlineKeyboardButton(text="Очистить", callback_data="clear"),
             InlineKeyboardButton(text=">", callback_data="next")
         ],
     )
