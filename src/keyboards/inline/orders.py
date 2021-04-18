@@ -10,7 +10,4 @@ async def get_orders_kb(orders: [Order]):
         kb.inline_keyboard.append([
             InlineKeyboardButton(text=f"Заказ от {order.date}, {order.price}р.", callback_data=order.id)
         ])
-    kb.inline_keyboard.append([
-        InlineKeyboardButton(text="Отмена", callback_data="cancel")
-    ])
     return kb

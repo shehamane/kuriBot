@@ -1,11 +1,11 @@
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, InlineKeyboardButton
 
 from data.api_config import USERS_PAGE_VOLUME
 from filters.is_numeric import IsNumericFilterCallback, IsNumericFilter
 from keyboards.default import admin_panel_kb
-from keyboards.inline import get_users_list_kb, user_info_kb, get_orders_kb, back_button
+from keyboards.inline import get_users_list_kb, user_info_kb, get_orders_kb, back_button, add_button
 from states import UserInfo, AdminPanel
 
 from loader import dp
@@ -129,7 +129,9 @@ async def show_orders(call: CallbackQuery, state: FSMContext):
         user = await db.get_user(state_data["user_id"])
         state_data["username"] = user.username
     await call.message.answer(f"История заказов пользователя {user.username}:",
-                              reply_markup=await get_orders_kb(await db.get_orders(user.id)))
+                              reply_markup=await add_button(await get_orders_kb(await db.get_orders(user.id)),
+                                                            InlineKeyboardButton(text="Отмена",
+                                                                                 callback_data="cancel")))
     await UserInfo.OrdersList.set()
 
 

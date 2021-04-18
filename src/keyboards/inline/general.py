@@ -1,5 +1,11 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
+
+async def add_button(kb: InlineKeyboardMarkup, button: InlineKeyboardButton):
+    kb.inline_keyboard.append([button])
+    return kb
+
+
 start_button = InlineKeyboardMarkup(
     inline_keyboard=[
         [
