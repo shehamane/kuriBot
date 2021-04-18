@@ -8,7 +8,7 @@ from keyboards.default import admin_panel_kb
 from keyboards.inline import get_admin_products_kb
 from keyboards.inline.admin_catalog import get_admin_subcategories_kb, empty_category_kb
 from keyboards.inline.general import cancel_kb
-from states import AdminPanel, CatalogEdit
+from states import AdminPanel, CatalogEdit, UserInfo
 
 from data.api_config import PRODUCTS_PAGE_VOLUME
 from data.media_config import IMG_CATALOG_PATH
@@ -18,7 +18,8 @@ from utils.db_api.api import db_api as db
 
 
 @dp.message_handler(Text(ignore_case=True, contains=['каталог']),
-                    state=[AdminPanel.AdminPanel, CatalogEdit.CategoryChoosing])
+                    state=[AdminPanel.AdminPanel, CatalogEdit.CategoryChoosing, UserInfo.OrderInfo,
+                           UserInfo.UsersList, UserInfo.OrdersList])
 async def show_admin_catalog(message: Message, state: FSMContext):
     await state.finish()
 
