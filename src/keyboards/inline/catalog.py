@@ -22,7 +22,6 @@ async def get_product_operating_kb(page, total, amount):
             ],
             [
                 InlineKeyboardButton(text="Назад", callback_data="back"),
-                InlineKeyboardButton(text="Покинуть каталог", callback_data="cancel")
             ]
         ]
     )
@@ -40,7 +39,6 @@ async def get_subcategories_kb(subcategories: [Category]):
     keyboard.inline_keyboard.append(
         [
             InlineKeyboardButton(text="Назад", callback_data="back"),
-            InlineKeyboardButton(text="Покинуть каталог", callback_data="cancel"),
         ]
     )
     return keyboard

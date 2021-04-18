@@ -4,7 +4,6 @@ from aiogram.types import CallbackQuery, Message, InputMediaPhoto, InputFile
 from data.media_config import IMG_CATALOG_PATH
 from filters.is_numeric import IsNumericFilterCallback
 from handlers.admin.catalog import send_category_admin_info
-from handlers.users.catalog import send_product_info
 from keyboards.inline.admin_catalog import product_info_kb
 from keyboards.inline.general import confirmation_kb, cancel_kb
 from loader import dp
@@ -21,7 +20,7 @@ async def show_product_info(call: CallbackQuery, state: FSMContext):
         state_data["product_id"] = int(call.data)
         product = await db.get_product(int(call.data))
 
-        await send_product_info(state_data["main_message"], product)
+        # await send_product_info(state_data["main_message"], product)
         await state_data["main_message"].edit_reply_markup(product_info_kb)
 
 
@@ -106,6 +105,6 @@ async def show_last_product_info(_, state: FSMContext):
     async with state.proxy() as state_data:
         product = await db.get_product(state_data["product_id"])
 
-        state_data["main_message"] = await send_product_info(state_data["main_message"], product,
-                                                             state_data["is_photo"])
+        # state_data["main_message"] = await send_product_info(state_data["main_message"], product,
+        #                                                      state_data["is_photo"])
         await state_data["main_message"].edit_reply_markup(product_info_kb)
