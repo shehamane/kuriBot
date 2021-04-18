@@ -11,6 +11,5 @@ admin_panel_kb = ReplyKeyboardMarkup([
         KeyboardButton(text='ОТМЕНА'),
     ]
 ],
-    resize_keyboard=True,
-    one_time_keyboard=True
+    resize_keyboard=True
 )
