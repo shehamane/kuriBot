@@ -1,8 +1,10 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+from utils.callback_datas import choose_product_cd
 from .catalog import get_subcategories_kb
 
 
-async def get_admin_subcategories_kb(subcategories):
+async def get_admin_subcategories_kb(subcategories, is_main=False):
     kb = await get_subcategories_kb(subcategories)
     kb.inline_keyboard.pop()
     kb.inline_keyboard.append(
@@ -12,14 +14,15 @@ async def get_admin_subcategories_kb(subcategories):
     )
     kb.inline_keyboard.append(
         [
+            InlineKeyboardButton(text="Очистить каталог", callback_data="clear")
+            if is_main
+            else
             InlineKeyboardButton(text="Удалить категорию", callback_data="delete")
         ]
     )
     kb.inline_keyboard.append(
         [
             InlineKeyboardButton(text="Назад", callback_data="back"),
-            InlineKeyboardButton(text="Изменить изображение", callback_data="change_image"),
-            InlineKeyboardButton(text="Покинуть каталог", callback_data="cancel"),
         ]
     )
     return kb
@@ -31,7 +34,8 @@ async def get_admin_products_kb(products, page, total):
     for product in products:
         kb.inline_keyboard.append(
             [
-                InlineKeyboardButton(text=product.name, callback_data=product.id)
+                InlineKeyboardButton(text=product.name,
+                                     callback_data=choose_product_cd.new(product_id=product.id))
             ]
         )
 
@@ -49,7 +53,7 @@ async def get_admin_products_kb(products, page, total):
     kb.inline_keyboard.append(
         [
             InlineKeyboardButton(text="<", callback_data="previous"),
-            InlineKeyboardButton(text=f"{page+1}/{total}", callback_data="page"),
+            InlineKeyboardButton(text=f"{page + 1}/{total}", callback_data="page"),
             InlineKeyboardButton(text=">", callback_data="next"),
         ]
     )
@@ -57,7 +61,6 @@ async def get_admin_products_kb(products, page, total):
     kb.inline_keyboard.append(
         [
             InlineKeyboardButton(text="Назад", callback_data="back"),
-            InlineKeyboardButton(text="Покинуть каталог", callback_data="cancel"),
         ]
     )
     return kb
@@ -71,11 +74,9 @@ empty_category_kb = InlineKeyboardMarkup(
         ],
         [
             InlineKeyboardButton("Удалить категорию", callback_data="delete"),
-            InlineKeyboardButton("Изменить изображение", callback_data="change_image")
         ],
         [
             InlineKeyboardButton(text="Назад", callback_data="back"),
-            InlineKeyboardButton(text="Покинуть каталог", callback_data="cancel"),
         ]
     ]
 )

@@ -3,6 +3,8 @@ import shutil
 
 from aiogram.types import PhotoSize
 
+from data.media_config import IMG_DEFAULT_PATH
+
 
 async def gen_img_files():
     dir_path = "img/products"
@@ -33,7 +35,7 @@ async def delete_product_image(product_id):
 async def get_product_image_path(product_id):
     dir_path = "img/products/" + str(product_id)
     if not os.path.exists(dir_path):
-        return False
+        return IMG_DEFAULT_PATH
     else:
         img_path = os.listdir(dir_path)[0]
         path = dir_path + "/" + os.path.relpath(img_path)

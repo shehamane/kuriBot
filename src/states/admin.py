@@ -11,16 +11,17 @@ class UserInfo(StatesGroup):
     OrderInfo = State()
 
 
-class CatalogEdit(StatesGroup):
-    CategoryChoosing = State()
-    ProductsWatching = State()
+class AdminCatalog(StatesGroup):
+    Categories = State()
+    EmptyCategory = State()
+    Products = State()
     CatalogImageRequest = State()
     CategoryNameRequest = State()
     CategoryDeletionConfirmation = State()
     ProductInfoRequest = State()
-    ProductImageWaiting = State()
     ProductImageRequest = State()
-    ProductWatching = State()
+    ProductInfo = State()
     ProductDeletionConfirmation = State()
     ProductInfoChangeRequest = State()
     ProductImageChangeRequest = State()
+    CatalogClearingConfirmation = State()

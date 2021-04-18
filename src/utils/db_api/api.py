@@ -1,4 +1,5 @@
 from datetime import datetime
+from math import ceil
 
 from aiogram import types
 from gino import Gino
@@ -136,7 +137,7 @@ class DBCommands:
             page_num * USERS_PAGE_VOLUME).gino.all()
         return users_list
 
-    # CATEGORIES #########################################################################
+    # CATEGORIES ########################################################################
     async def get_category(self, category_id):
         category = await Category.get(category_id)
         return category
@@ -171,9 +172,25 @@ class DBCommands:
                 await self.delete_product(product.id)
         await category.delete()
 
+    async def clear_catalog(self):
+        category = await self.get_category(1)
+
+        if category.is_parent:
+            subcategories = await self.get_subcategories(1)
+            for sc in subcategories:
+                await self.delete_category(sc.id)
+        else:
+            products = await self.get_products_by_category(1)
+            for product in products:
+                await self.delete_product(product.id)
+
     async def count_products_in_category(self, category_id):
         number = await db.select([db.func.count(Product.id)]).where(
             Product.category_id == category_id).gino.scalar()
+        return number
+
+    async def count_pages_in_category(self, category_id, page_volume):
+        number = int(ceil(await self.count_products_in_category(category_id) / page_volume))
         return number
 
     async def is_empty_category(self, category_id):

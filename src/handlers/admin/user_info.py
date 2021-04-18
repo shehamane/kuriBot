@@ -6,14 +6,14 @@ from data.api_config import USERS_PAGE_VOLUME
 from filters.is_numeric import IsNumericFilterCallback, IsNumericFilter
 from keyboards.default import admin_panel_kb
 from keyboards.inline import get_users_list_kb, user_info_kb, get_orders_kb, back_button, add_button
-from states import UserInfo, AdminPanel, CatalogEdit
+from states import UserInfo, AdminPanel, AdminCatalog
 
 from loader import dp
 from utils.db_api.api import db_api as db
 
 
 @dp.message_handler(Text(ignore_case=True, contains=['пользователи']), state=[AdminPanel.AdminPanel,
-                                                                              CatalogEdit.CategoryChoosing])
+                                                                              AdminCatalog.Categories])
 async def show_users_list(message: Message, state: FSMContext):
     await state.finish()
     await UserInfo.UsersList.set()
