@@ -255,13 +255,15 @@ class DBCommands:
 
         return cart
 
-    async def get_users_current_cart(self, user_id):
-        cart = await Cart.query.where(and_(Cart.user_id == user_id, not_(Cart.ordered))).gino.first()
-        return cart
+    async def clear_cart(self, user_id=None):
+        cart = await self.get_current_cart(user_id)
+        await CartItem.delete.where(CartItem.cart_id == cart.id).gino.status()
 
-    async def get_current_cart(self):
-        user = await self.get_current_user()
-        cart = await self.get_users_current_cart(user.id)
+    async def get_current_cart(self, user_id=None):
+        if user_id is None:
+            user = await self.get_current_user()
+            user_id = user.id
+        cart = await Cart.query.where(and_(Cart.user_id == user_id, not_(Cart.ordered))).gino.first()
         return cart
 
     async def get_cart_page(self, page_num):
@@ -274,7 +276,7 @@ class DBCommands:
     async def count_cart(self, user_id=None):
         if not user_id:
             user_id = (await self.get_current_user()).id
-        cart = await self.get_users_current_cart(user_id)
+        cart = await self.get_current_cart(user_id)
         number = await db.select([db.func.count(CartItem.id)]).where(CartItem.cart_id == cart.id).gino.scalar()
         return number
 
@@ -322,7 +324,7 @@ class DBCommands:
         return cart_items
 
     async def get_cart_items_by_user(self, user_id):
-        cart = await self.get_users_current_cart(user_id)
+        cart = await self.get_current_cart(user_id)
         cart_items = await CartItem.query.where(CartItem.cart_id == cart.id).gino.all()
         return cart_items
 

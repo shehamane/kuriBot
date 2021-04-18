@@ -43,10 +43,10 @@ async def confirm_address(message: Message, state: FSMContext):
             f"Оформить заказ?"
 
     await message.answer(text, reply_markup=confirmation_cancel_kb)
-    await Ordering.OrderConfrimation.set()
+    await Ordering.OrderConfirmation.set()
 
 
-@dp.callback_query_handler(text="yes", state=Ordering.OrderConfrimation)
+@dp.callback_query_handler(text="yes", state=Ordering.OrderConfirmation)
 async def create_order(call: CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
         prices = data["prices"]

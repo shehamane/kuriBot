@@ -4,12 +4,13 @@ from aiogram.types import Message, CallbackQuery, InputFile, InputMediaPhoto
 
 from filters.is_numeric import IsNumericFilterCallback
 
-from keyboards.inline import get_cart_item_operating_kb, get_cart_kb
+from keyboards.inline import get_cart_item_operating_kb, get_cart_kb, confirmation_kb
+from utils.callback_datas import choose_cart_item_cd
 
 from utils.misc.files import get_product_image_path
 from utils.db_api.api import db_api as db
 
-from states import CartListing
+from states import Cart
 
 from data.api_config import CART_PAGE_VOLUME
 from data.media_config import IMG_CART_PATH, IMG_DEFAULT_PATH
@@ -20,14 +21,14 @@ from loader import dp
 @dp.message_handler(Text(contains=['корзина'], ignore_case=True), state='*')
 async def show_cart(message: Message, state: FSMContext):
     await state.finish()
-    await CartListing.CartWatching.set()
+    await Cart.CartItems.set()
 
     await state.update_data({"page_num": 0})
     await message.answer_photo(InputFile(IMG_CART_PATH), caption="Ваша корзина: ",
                                reply_markup=await get_cart_kb(await db.get_cart_page(0)))
 
 
-@dp.callback_query_handler(text="next", state=CartListing.CartWatching)
+@dp.callback_query_handler(text="next", state=Cart.CartItems)
 async def show_next_page(call: CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
         if data["page_num"] < int(await db.count_cart() / (CART_PAGE_VOLUME + 1)):
@@ -35,7 +36,7 @@ async def show_next_page(call: CallbackQuery, state: FSMContext):
             await call.message.edit_reply_markup(await get_cart_kb(await db.get_cart_page(data["page_num"])))
 
 
-@dp.callback_query_handler(text="previous", state=CartListing.CartWatching)
+@dp.callback_query_handler(text="previous", state=Cart.CartItems)
 async def show_previous_page(call: CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
         if data["page_num"] > 0:
@@ -43,12 +44,33 @@ async def show_previous_page(call: CallbackQuery, state: FSMContext):
             await call.message.edit_reply_markup(await get_cart_kb(await db.get_cart_page(data["page_num"])))
 
 
-@dp.callback_query_handler(IsNumericFilterCallback(), state=CartListing.CartWatching)
-async def show_product(call: CallbackQuery, state: FSMContext):
-    await CartListing.ProductWatching.set()
+@dp.callback_query_handler(text="clear", state=Cart.CartItems)
+async def confirm_deletion(call: CallbackQuery):
+    await Cart.ClearConfirmation.set()
+    await call.message.edit_caption("Ваша корзина будет очищена. Продолжить?", reply_markup=confirmation_kb)
 
-    cart_item_id = int(call.data)
-    cart_item = await db.get_cart_item(int(call.data))
+
+@dp.callback_query_handler(text="no", state=Cart.ClearConfirmation)
+async def show_cart(call: CallbackQuery, state: FSMContext):
+    await Cart.CartItems.set()
+    async with state.proxy() as data:
+        await call.message.edit_caption("Ваша корзина:",
+                                        reply_markup=await get_cart_kb(await db.get_cart_page(data["page_num"])))
+
+
+@dp.callback_query_handler(text="yes", state=Cart.ClearConfirmation)
+async def clear_cart(call: CallbackQuery):
+    await Cart.CartItems.set()
+    await db.clear_cart()
+    await call.message.edit_caption("Корзина очищена", reply_markup=await get_cart_kb(await db.get_cart_page(0)))
+
+
+@dp.callback_query_handler(choose_cart_item_cd.filter(), state=Cart.CartItems)
+async def show_cart_item(call: CallbackQuery, callback_data: dict, state: FSMContext):
+    await Cart.ItemInfo.set()
+
+    cart_item_id = int(callback_data.get("cart_item_id"))
+    cart_item = await db.get_cart_item(cart_item_id)
     await state.update_data({"cart_item_id": cart_item_id})
 
     product = await db.get_product(cart_item.product_id)
@@ -64,7 +86,7 @@ async def show_product(call: CallbackQuery, state: FSMContext):
     await call.message.edit_caption(text, reply_markup=await get_cart_item_operating_kb(cart_item.amount))
 
 
-@dp.callback_query_handler(text="decrease", state=CartListing.ProductWatching)
+@dp.callback_query_handler(text="decrease", state=Cart.ItemInfo)
 async def decrease_amount(call: CallbackQuery, state: FSMContext):
     async with state.proxy() as state_data:
         cart_item = await db.get_cart_item(int(state_data["cart_item_id"]))
@@ -84,7 +106,7 @@ async def decrease_amount(call: CallbackQuery, state: FSMContext):
     await call.message.edit_reply_markup(reply_markup=await get_cart_item_operating_kb(new_number))
 
 
-@dp.callback_query_handler(text="increase", state=CartListing.ProductWatching)
+@dp.callback_query_handler(text="increase", state=Cart.ItemInfo)
 async def increase_cart_item(call: CallbackQuery, state: FSMContext):
     async with state.proxy() as state_data:
         cart_item = await db.get_cart_item(int(state_data["cart_item_id"]))
@@ -101,7 +123,7 @@ async def increase_cart_item(call: CallbackQuery, state: FSMContext):
     await call.message.edit_reply_markup(reply_markup=await get_cart_item_operating_kb(new_number))
 
 
-@dp.callback_query_handler(text="delete", state=CartListing.ProductWatching)
+@dp.callback_query_handler(text="delete", state=Cart.ItemInfo)
 async def delete_cart_item(call: CallbackQuery, state: FSMContext):
     async with state.proxy() as state_data:
         cart_item = await db.get_cart_item(int(state_data["cart_item_id"]))
@@ -115,9 +137,9 @@ async def delete_cart_item(call: CallbackQuery, state: FSMContext):
     await call.message.edit_reply_markup(reply_markup=await get_cart_item_operating_kb(0))
 
 
-@dp.callback_query_handler(text="back", state=CartListing.ProductWatching)
+@dp.callback_query_handler(text="back", state=Cart.ItemInfo)
 async def show_cart(call: CallbackQuery, state: FSMContext):
-    await CartListing.CartWatching.set()
+    await Cart.CartItems.set()
     data = await state.get_data()
     await call.message.edit_media(InputMediaPhoto(InputFile(IMG_CART_PATH)))
     await call.message.edit_caption(caption="Ваша корзина: ",

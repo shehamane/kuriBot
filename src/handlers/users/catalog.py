@@ -2,15 +2,13 @@ from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InputFile
 from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher import FSMContext
 
-from keyboards.default import main_menu_kb
-from keyboards.inline.general import back_button
-from keyboards.inline import get_subcategories_kb, get_product_operating_kb
+from keyboards.inline import get_subcategories_kb, get_product_operating_kb, back_button
 from utils.callback_datas import choose_category_cd
 
 from utils.misc.files import get_product_image_path
-from utils.db_api.api import db_api as db, Category
+from utils.db_api.api import db_api as db, Category, Product
 
-from states import CatalogListing
+from states import Catalog
 
 from data.media_config import IMG_CATALOG_PATH, IMG_DEFAULT_PATH
 
@@ -20,152 +18,153 @@ from loader import dp
 @dp.message_handler(Text(ignore_case=True, contains=['каталог']), state='*')
 async def show_main_category(message: Message, state: FSMContext):
     await state.finish()
-    await CatalogListing.CategoryChoosing.set()
     await state.update_data({"category_id": 1})
 
     main = await db.get_category(1)
-    catalog_message = await message.answer_photo(InputFile(IMG_CATALOG_PATH), caption="КАТАЛОГ")
-    await send_category_info(catalog_message, state, main)
+    if await db.is_empty_category(main.id):
+        await message.answer("Каталог пуст")
+    elif main.is_parent:
+        await Catalog.Categories.set()
+
+        answer = await get_category_message(main)
+        await message.answer_photo(InputFile(answer["img_path"]), caption=answer["text"], reply_markup=answer["rm"])
+    else:
+        await Catalog.Product.set()
+        page_total = await db.count_products_in_category(main.id)
+        first_product = await db.get_product_by_page(main.id, 0)
+        await state.update_data({"page_num": 0,
+                                 "page_total": page_total,
+                                 "amount": 1,
+                                 "product_id": first_product.id})
+
+        answer = await get_product_message(first_product, 0, page_total, 1)
+        await message.answer_photo(InputFile(answer["img_path"]), caption=answer["text"], reply_markup=answer["rm"])
 
 
-@dp.callback_query_handler(state=[CatalogListing.CategoryChoosing, CatalogListing.ProductWatching], text="back")
+@dp.callback_query_handler(state=[Catalog.Categories, Catalog.Product], text="back")
 async def return_to_parent_category(call: CallbackQuery, state: FSMContext):
-    async with state.proxy() as state_data:
-        if state_data["category_id"] == 1:
-            await call.message.answer("Вы покинули каталог.", reply_markup=main_menu_kb)
-            await state.finish()
+    async with state.proxy() as data:
+        if data["category_id"] == 1:
             return
-        else:
-            curr_category = await db.get_category(state_data["category_id"])
+        curr_category = await db.get_category(data["category_id"])
+        curr_category = await db.get_category(curr_category.parent_id)
+        data["category_id"] = curr_category.id
 
-    await state.update_data({"category_id": curr_category.parent_id})
-    if not curr_category.is_parent:
-        await CatalogListing.CategoryChoosing.set()
-        await call.message.edit_media(InputMediaPhoto(InputFile(IMG_CATALOG_PATH)))
+    await Catalog.Categories.set()
 
-    await call.message.edit_reply_markup(
-        await get_subcategories_kb(await db.get_subcategories(curr_category.parent_id)))
+    answer = await get_category_message(curr_category)
+    await call.message.edit_media(InputMediaPhoto(InputFile(answer["img_path"])))
+    await call.message.edit_caption(caption=answer["text"], reply_markup=answer["rm"])
 
 
-@dp.callback_query_handler(choose_category_cd.filter(), state=CatalogListing.CategoryChoosing)
+@dp.callback_query_handler(choose_category_cd.filter(), state=Catalog.Categories)
 async def show_category(call: CallbackQuery, callback_data: dict, state: FSMContext):
     category_id = int(callback_data.get("category_id"))
     category = await db.get_category(category_id)
     await state.update_data({"category_id": category.id})
 
-    await send_category_info(call.message, state, category)
+    if await db.is_empty_category(category.id):
+        await call.message.edit_caption("Категория пуста", reply_markup=back_button)
+    elif category.is_parent:
+        await Catalog.Categories.set()
+
+        answer = await get_category_message(category)
+        await call.message.edit_caption(caption=answer["text"], reply_markup=answer["rm"])
+    else:
+        await Catalog.Product.set()
+        page_total = await db.count_products_in_category(category.id)
+        first_product = await db.get_product_by_page(category.id, 0)
+        await state.update_data({"page_num": 0,
+                                 "page_total": page_total,
+                                 "amount": 1,
+                                 "product_id": first_product.id})
+
+        answer = await get_product_message(first_product, 0, page_total, 1)
+        await call.message.edit_media(InputMediaPhoto(InputFile(answer["img_path"])))
+        await call.message.edit_caption(caption=answer["text"], reply_markup=answer["rm"])
 
 
-@dp.callback_query_handler(state=CatalogListing.ProductWatching, text="next")
+@dp.callback_query_handler(state=Catalog.Product, text="next")
 async def show_next_product(call: CallbackQuery, state: FSMContext):
-    async with state.proxy() as state_data:
-        state_data["amount"] = 1
-        state_data["page_number"] = (state_data["page_number"] + 1) % state_data["page_total"]
+    async with state.proxy() as data:
+        data["amount"] = 1
+        data["page_num"] = (data["page_num"] + 1) % data["page_total"]
+        next_product = await db.get_product_by_page(data["category_id"],
+                                                    data["page_num"])
+        data["product_id"] = next_product.id
 
-        next_product = await db.get_product_by_page(state_data["category_id"],
-                                                    state_data["page_number"])
-        state_data["product_id"] = next_product.id
-
-        await send_product_info(call.message, next_product, False)
-        await call.message.edit_reply_markup(
-            await get_product_operating_kb(state_data["page_number"], state_data["page_total"], 1))
+        answer = await get_product_message(next_product, data["page_num"], data["page_total"], data["amount"])
+        await call.message.edit_media(InputMediaPhoto(InputFile(answer["img_path"])))
+        await call.message.edit_caption(caption=answer["text"], reply_markup=answer["rm"])
 
 
-@dp.callback_query_handler(state=CatalogListing.ProductWatching, text="previous")
+@dp.callback_query_handler(state=Catalog.Product, text="previous")
 async def show_previous_product(call: CallbackQuery, state: FSMContext):
-    async with state.proxy() as state_data:
-        state_data["amount"] = 1
-        state_data["page_number"] -= 1
-        if state_data["page_number"] == -1:
-            state_data["page_number"] += state_data["page_total"]
+    async with state.proxy() as data:
+        data["amount"] = 1
+        data["page_num"] -= 1
+        if data["page_num"] == -1:
+            data["page_num"] += data["page_total"]
+        previous_product = await db.get_product_by_page(data["category_id"],
+                                                        data["page_num"])
+        data["product_id"] = previous_product.id
 
-        previous_product = await db.get_product_by_page(state_data["category_id"],
-                                                        state_data["page_number"])
-        state_data["product_id"] = previous_product.id
-
-        await send_product_info(call.message, previous_product, False)
-        await call.message.edit_reply_markup(
-            await get_product_operating_kb(state_data["page_number"], state_data["page_total"], 1))
+        answer = await get_product_message(previous_product, data["page_num"], data["page_total"], data["amount"])
+        await call.message.edit_media(InputMediaPhoto(InputFile(answer["img_path"])))
+        await call.message.edit_caption(caption=answer["text"], reply_markup=answer["rm"])
 
 
-@dp.callback_query_handler(state=CatalogListing.ProductWatching, text="increase")
+@dp.callback_query_handler(state=Catalog.Product, text="increase")
 async def increase_amount(call: CallbackQuery, state: FSMContext):
-    async with state.proxy() as state_data:
-        state_data["amount"] += 1
+    async with state.proxy() as data:
+        data["amount"] += 1
 
-        await call.message.edit_reply_markup(await get_product_operating_kb(state_data["page_number"],
-                                                                            state_data["page_total"],
-                                                                            state_data["amount"]))
+        await call.message.edit_reply_markup(await get_product_operating_kb(data["page_num"],
+                                                                            data["page_total"],
+                                                                            data["amount"]))
 
 
-@dp.callback_query_handler(state=CatalogListing.ProductWatching, text="decrease")
+@dp.callback_query_handler(state=Catalog.Product, text="decrease")
 async def decrease_amount(call: CallbackQuery, state: FSMContext):
-    async with state.proxy() as state_data:
-        if state_data["amount"] == 1:
+    async with state.proxy() as data:
+        if data["amount"] == 1:
             return
-        state_data["amount"] -= 1
+        data["amount"] -= 1
 
-        await call.message.edit_reply_markup(await get_product_operating_kb(state_data["page_number"],
-                                                                            state_data["page_total"],
-                                                                            state_data["amount"]))
+        await call.message.edit_reply_markup(await get_product_operating_kb(data["page_num"],
+                                                                            data["page_total"],
+                                                                            data["amount"]))
 
 
-@dp.callback_query_handler(state=CatalogListing.ProductWatching, text="add_to_cart")
+@dp.callback_query_handler(state=Catalog.Product, text="add_to_cart")
 async def add_to_cart(call: CallbackQuery, state: FSMContext):
-    async with state.proxy() as state_data:
-        cart_item = await db.get_cart_item_by_user(state_data["product_id"])
+    async with state.proxy() as data:
+        cart_item = await db.get_cart_item_by_user(data["product_id"])
 
         if not cart_item:
-            await db.create_cart_item(state_data["product_id"], state_data["amount"])
+            await db.create_cart_item(data["product_id"], data["amount"])
         else:
             await db.change_cart_item_amount(cart_item.id,
-                                             cart_item.amount + state_data["amount"])
+                                             cart_item.amount + data["amount"])
 
         await call.message.edit_caption(call.message.caption + "\n Товар добавлен в корзину!",
-                                        reply_markup=await get_product_operating_kb(state_data["page_number"],
-                                                                                    state_data["page_total"],
-                                                                                    state_data["amount"]))
+                                        reply_markup=await get_product_operating_kb(data["page_num"],
+                                                                                    data["page_total"],
+                                                                                    data["amount"]))
 
 
-async def send_product_info(message: Message, product, new_msg=False):
-    text = f'{product.name}\n' \
-           f'{product.description}\n' \
-           f'Цена: {product.price} р.'
-
-    img_path = await get_product_image_path(product.id)
-    if img_path:
-        if not new_msg:
-            await message.edit_media(InputMediaPhoto(InputFile(img_path)))
-        else:
-            main_message = await message.answer_photo(InputFile(img_path), caption=text)
-            return main_message
-    else:
-        if not new_msg:
-            await message.edit_media(InputMediaPhoto(InputFile(IMG_DEFAULT_PATH)))
-        else:
-            main_message = await message.answer_photo(InputFile(IMG_DEFAULT_PATH), caption=text)
-            return main_message
-
-    await message.edit_caption(text)
+async def get_category_message(category: Category):
+    message = {"text": category.name,
+               "rm": await get_subcategories_kb(await db.get_subcategories(category.id)),
+               "img_path": IMG_CATALOG_PATH}
     return message
 
 
-async def send_category_info(message: Message, state: FSMContext, category: Category):
-    if category.is_parent:
-        await message.edit_reply_markup(await get_subcategories_kb(await db.get_subcategories(category.id)))
-    else:
-        await CatalogListing.ProductWatching.set()
-
-        page_total = await db.count_products_in_category(category.id)
-
-        if not page_total:
-            await message.edit_caption("Категория пуста.", reply_markup=back_button)
-            return
-        product = await db.get_product_by_page(category.id, 0)
-
-        await state.update_data({"product_id": product.id, "page_number": 0,
-                                 "amount": 1, "page_total": page_total})
-
-        await send_product_info(message, product, False)
-        await message.edit_reply_markup(
-            await get_product_operating_kb(0, page_total, 1))
+async def get_product_message(product: Product, page_num, page_total, amount):
+    text = f'{product.name}\n' \
+           f'{product.description}\n' \
+           f'Цена: {product.price} р.'
+    message = {"text": text,
+               "rm": await get_product_operating_kb(page_num, page_total, amount),
+               "img_path": await get_product_image_path(product.id) or IMG_DEFAULT_PATH}
+    return message

@@ -4,7 +4,6 @@ from aiogram.types import CallbackQuery, Message, InputMediaPhoto, InputFile
 from data.media_config import IMG_CATALOG_PATH
 from filters.is_numeric import IsNumericFilterCallback
 from handlers.admin.catalog import send_category_admin_info
-from handlers.users.catalog import send_product_info
 from keyboards.inline.admin_catalog import product_info_kb
 from keyboards.inline.general import confirmation_kb, cancel_kb
 from loader import dp
@@ -21,8 +20,9 @@ async def show_product_info(call: CallbackQuery, state: FSMContext):
         state_data["product_id"] = int(call.data)
         product = await db.get_product(int(call.data))
 
-        await send_product_info(state_data["main_message"], product)
+        # await send_product_info(state_data["main_message"], product)
         await call.message.edit_reply_markup(product_info_kb)
+
 
 
 @dp.callback_query_handler(text="back", state=CatalogEdit.ProductWatching)
@@ -123,3 +123,4 @@ async def show_current_product(message: Message, state: FSMContext):
                f'Цена: {product.price} р.'
 
         await message.edit_caption(text, reply_markup=product_info_kb)
+
