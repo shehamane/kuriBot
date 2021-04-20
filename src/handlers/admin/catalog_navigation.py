@@ -84,17 +84,19 @@ async def return_to_parent_category(call: CallbackQuery, state: FSMContext):
     await call.message.edit_caption(answer["text"], reply_markup=answer["rm"])
 
 
-
 @dp.callback_query_handler(text="cancel", state=[AdminCatalog.CatalogImageRequest, AdminCatalog.CategoryNameRequest,
                                                  AdminCatalog.ProductInfoRequest])
 async def return_to_category(call: CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
         category = await db.get_category(data["category_id"])
-
-    async with state.proxy() as data:
         answer = await get_category_message(category, data)
     await call.message.edit_caption(caption=answer["text"], reply_markup=answer["rm"])
-    await AdminCatalog.Categories.set()
+    if await db.is_empty_category(category.id):
+        await AdminCatalog.EmptyCategory.set()
+    elif category.is_parent:
+        await AdminCatalog.Categories.set()
+    else:
+        await AdminCatalog.Products.set()
 
 
 @dp.callback_query_handler(text="next", state=AdminCatalog.Products)
