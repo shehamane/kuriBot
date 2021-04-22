@@ -85,7 +85,7 @@ async def return_to_parent_category(call: CallbackQuery, state: FSMContext):
 
 
 @dp.callback_query_handler(text="cancel", state=[AdminCatalog.CatalogImageRequest, AdminCatalog.CategoryNameRequest,
-                                                 AdminCatalog.ProductInfoRequest])
+                                                 AdminCatalog.ProductInfoRequest, AdminCatalog.CategoryNewNameRequest])
 async def return_to_category(call: CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
         category = await db.get_category(data["category_id"])
@@ -133,5 +133,5 @@ async def get_category_message(category: Category, data):
     else:
         message["rm"] = await get_admin_products_kb(
             await db.get_products_by_page(category.id, data["page_num"], PRODUCTS_PAGE_VOLUME),
-            data["page_num"], data["page_total"])
+            data["page_num"], data["page_total"], category.id == 1)
     return message

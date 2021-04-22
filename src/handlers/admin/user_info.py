@@ -5,18 +5,23 @@ from aiogram.types import Message, CallbackQuery, InlineKeyboardButton
 from data.api_config import USERS_PAGE_VOLUME
 from filters.is_numeric import IsNumericFilterCallback, IsNumericFilter
 from keyboards.default import admin_panel_kb
+from keyboards.default.admin_panel import back_kb
 from keyboards.inline import get_users_list_kb, user_info_kb, get_orders_kb, back_button, add_button
 from states import UserInfo, AdminPanel, AdminCatalog
 
 from loader import dp
+from utils.callback_datas import choose_user_cd, choose_order_cd
 from utils.db_api.api import db_api as db
 
 
-@dp.message_handler(Text(ignore_case=True, contains=['пользователи']), state=[AdminPanel.AdminPanel,
-                                                                              AdminCatalog.Categories])
+@dp.message_handler(Text(ignore_case=True, contains=['пользователи']),
+                    state=[AdminPanel.AdminPanel, AdminCatalog.Categories, AdminCatalog.Products,
+                           AdminCatalog.EmptyCategory, AdminCatalog.ProductInfo])
 async def show_users_list(message: Message, state: FSMContext):
     await state.finish()
     await UserInfo.UsersList.set()
+
+    await message.answer("Список пользователей", reply_markup=back_kb)
 
     await state.update_data({"page_num": 0})
     await state.update_data({"page_total": int(await db.count_users() / (USERS_PAGE_VOLUME + 1)) + 1})
@@ -28,15 +33,21 @@ async def show_users_list(message: Message, state: FSMContext):
                                                                          (await state.get_data()).get("page_total")))
 
 
-@dp.callback_query_handler(state=UserInfo.UsersList, text="back")
-async def return_to_admin_panel(call: CallbackQuery, state: FSMContext):
-    await call.message.answer("Вы вернулись в панель администратора", reply_markup=admin_panel_kb)
+@dp.message_handler(Text(contains="отмена", ignore_case=True), state=UserInfo.all_states)
+async def back_to_admin_panel(message: Message, state: FSMContext):
+    await message.answer("Вы вернулись в панель администратора.", reply_markup=admin_panel_kb)
     await state.finish()
     await AdminPanel.AdminPanel.set()
-    return
 
 
-@dp.callback_query_handler(text="next", state=UserInfo.UsersList)
+@dp.message_handler(Text(equals="НАЗАД"), state=UserInfo.all_states)
+async def return_to_admin_panel(message: Message, state: FSMContext):
+    await message.answer("Вы вернулись в панель администратора", reply_markup=admin_panel_kb)
+    await state.finish()
+    await AdminPanel.AdminPanel.set()
+
+
+@dp.callback_query_handler(text="next", state=UserInfo.all_states)
 async def show_next_page(call: CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
         if data["page_num"] < int(await db.count_users() / (USERS_PAGE_VOLUME + 1)):
@@ -45,7 +56,7 @@ async def show_next_page(call: CallbackQuery, state: FSMContext):
                                                                          data["page_num"] + 1, data["page_total"]))
 
 
-@dp.callback_query_handler(text="previous", state=UserInfo.UsersList)
+@dp.callback_query_handler(text="previous", state=UserInfo.all_states)
 async def show_previous_page(call: CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
         if data["page_num"] > 0:
@@ -54,9 +65,9 @@ async def show_previous_page(call: CallbackQuery, state: FSMContext):
                                                                          data["page_num"] + 1, data["page_total"]))
 
 
-@dp.callback_query_handler(IsNumericFilterCallback(), state=UserInfo.UsersList)
-async def show_user_info(call: CallbackQuery, state: FSMContext):
-    user = await db.get_user(int(call.data))
+@dp.callback_query_handler(choose_user_cd.filter(), state=UserInfo.all_states)
+async def show_user_info(call: CallbackQuery, callback_data: dict, state: FSMContext):
+    user = await db.get_user(int(callback_data.get("user_id")))
     await state.update_data({"user_id": user.id})
 
     text = f"id: {user.id}\n" \
@@ -65,7 +76,7 @@ async def show_user_info(call: CallbackQuery, state: FSMContext):
     await call.message.answer(text, reply_markup=user_info_kb)
 
 
-@dp.message_handler(IsNumericFilter(), state=UserInfo.UsersList)
+@dp.message_handler(IsNumericFilter(), state=UserInfo.all_states)
 async def show_user_info(message: Message, state: FSMContext):
     user = await db.get_user(int(message.text))
     if user:
@@ -73,21 +84,13 @@ async def show_user_info(message: Message, state: FSMContext):
 
         text = f"id: {user.id}\n" \
                f"username: {user.username}\n" \
-               f"fullname: {user.fullname}\n" \
                f"referral id: {user.referral_id if user.referral_id else 'отсутствует'}"
         await message.answer(text, reply_markup=user_info_kb)
     else:
-        await message.answer("Пользователя с таким id не существует", reply_markup=user_info_kb)
+        await message.answer("Пользователя с таким id не существует")
 
 
-@dp.message_handler(Text(contains="отмена", ignore_case=True), state=UserInfo.UsersList)
-async def back_to_admin_panel(message: Message, state: FSMContext):
-    await message.answer("Вы вернулись в панель администратора.", reply_markup=admin_panel_kb)
-    await state.finish()
-    await AdminPanel.AdminPanel.set()
-
-
-@dp.message_handler(state=UserInfo.UsersList)
+@dp.message_handler(state=UserInfo.all_states)
 async def show_user_info(message: Message, state: FSMContext):
     username = message.text
     if username[0] == '@':
@@ -98,7 +101,6 @@ async def show_user_info(message: Message, state: FSMContext):
 
         text = f"id: {user.id}\n" \
                f"username: {user.username}\n" \
-               f"fullname: {user.fullname}\n" \
                f"referral id: {user.referral_id if user.referral_id else 'отсутствует'}"
         await message.answer(text, reply_markup=user_info_kb)
 
@@ -106,13 +108,12 @@ async def show_user_info(message: Message, state: FSMContext):
         await message.answer("Пользователя с таким юзернеймом не существует")
 
 
-@dp.callback_query_handler(text="cart", state=UserInfo.UsersList)
+@dp.callback_query_handler(text="cart", state=UserInfo.all_states)
 async def show_cart(call: CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
-        cart = await db.get_users_current_cart(data["user_id"])
-        cart_items = await db.get_cart_items_by_cart(cart.id)
+        cart_items = await db.get_cart_items_by_user(data["user_id"])
 
-        text = f"корзина пользователя {data['user_id']}\n\n"
+        text = f"Корзина пользователя id{data['user_id']}:\n\n"
         to_pay = 0
 
         for record in cart_items:
@@ -124,28 +125,21 @@ async def show_cart(call: CallbackQuery, state: FSMContext):
     await call.message.answer(text)
 
 
-@dp.callback_query_handler(text="history", state=UserInfo.UsersList)
+@dp.callback_query_handler(text="history", state=UserInfo.all_states)
 async def show_orders(call: CallbackQuery, state: FSMContext):
     async with state.proxy() as state_data:
         user = await db.get_user(state_data["user_id"])
         state_data["username"] = user.username
     await call.message.answer(f"История заказов пользователя {user.username}:",
-                              reply_markup=await add_button(await get_orders_kb(await db.get_orders(user.id)),
-                                                            InlineKeyboardButton(text="Отмена",
-                                                                                 callback_data="cancel")))
+                              reply_markup=await get_orders_kb(await db.get_orders(user.id)))
     await UserInfo.OrdersList.set()
 
 
-@dp.callback_query_handler(text="cancel", state=UserInfo.OrdersList)
-async def back_to_users_list(call: CallbackQuery, state: FSMContext):
-    await show_users_list(call.message, state)
-
-
-@dp.callback_query_handler(IsNumericFilterCallback(), state=UserInfo.OrdersList)
-async def show_order_info(call: CallbackQuery):
+@dp.callback_query_handler(choose_order_cd.filter(), state=UserInfo.all_states)
+async def show_order_info(call: CallbackQuery, callback_data: dict):
     await UserInfo.OrderInfo.set()
 
-    order = await db.get_order(int(call.data))
+    order = await db.get_order(int(callback_data["order_id"]))
     cart_items = await db.get_cart_items_by_cart(order.cart_id)
 
     text = f"ЗАКАЗ ОТ {order.date}\n\n"
@@ -156,12 +150,5 @@ async def show_order_info(call: CallbackQuery):
         to_pay += product.price * cart_item.amount
     text += f"\nСумма: {to_pay}р.\n"
 
-    await call.message.edit_text(text, reply_markup=back_button)
+    await call.message.answer(text)
 
-
-@dp.callback_query_handler(text="back", state=UserInfo.OrderInfo)
-async def back_to_orders_list(call: CallbackQuery, state: FSMContext):
-    await UserInfo.OrdersList.set()
-    async with state.proxy() as state_data:
-        await call.message.edit_text(f"История заказов пользователя {state_data['username']}",
-                                     reply_markup=await get_orders_kb(await db.get_orders(state_data["user_id"])))

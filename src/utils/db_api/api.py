@@ -206,6 +206,10 @@ class DBCommands:
         number = await db.select([db.func.count(Category.id)]).where(Category.parent_id == parent_id).gino.scalar()
         return number
 
+    async def change_category_name(self, category_id, new_name):
+        category = await self.get_category(category_id)
+        await category.update(name=new_name).apply()
+
     # PRODUCTS #########################################################################
     async def get_product(self, product_id):
         product = await Product.get(product_id)

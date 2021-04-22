@@ -15,11 +15,13 @@ async def get_admin_subcategories_kb(subcategories, is_main=False):
     kb.inline_keyboard.append(
         [
             InlineKeyboardButton(text="Очистить каталог", callback_data="clear")
+        ]
             if is_main
             else
-            InlineKeyboardButton(text="Удалить категорию", callback_data="delete")
-        ]
-    )
+        [
+            InlineKeyboardButton(text="Удалить", callback_data="delete"),
+            InlineKeyboardButton(text="Название", callback_data="change_name"),
+        ])
     kb.inline_keyboard.append(
         [
             InlineKeyboardButton(text="Назад", callback_data="back"),
@@ -28,7 +30,7 @@ async def get_admin_subcategories_kb(subcategories, is_main=False):
     return kb
 
 
-async def get_admin_products_kb(products, page, total):
+async def get_admin_products_kb(products, page, total, is_main=False):
     kb = InlineKeyboardMarkup(inline_keyboard=[])
 
     for product in products:
@@ -47,9 +49,14 @@ async def get_admin_products_kb(products, page, total):
 
     kb.inline_keyboard.append(
         [
-            InlineKeyboardButton(text="Удалить категорию", callback_data="delete")
+            InlineKeyboardButton(text="Очистить каталог", callback_data="clear")
         ]
-    )
+        if is_main
+        else
+        [
+            InlineKeyboardButton(text="Удалить", callback_data="delete"),
+            InlineKeyboardButton(text="Название", callback_data="change_name"),
+        ])
     kb.inline_keyboard.append(
         [
             InlineKeyboardButton(text="<", callback_data="previous"),

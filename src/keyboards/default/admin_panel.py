@@ -13,3 +13,9 @@ admin_panel_kb = ReplyKeyboardMarkup([
 ],
     resize_keyboard=True
 )
+
+back_kb = ReplyKeyboardMarkup([
+    [
+        KeyboardButton(text="НАЗАД"),
+    ]
+], resize_keyboard=True)

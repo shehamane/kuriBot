@@ -25,3 +25,4 @@ class AdminCatalog(StatesGroup):
     ProductInfoChangeRequest = State()
     ProductImageChangeRequest = State()
     CatalogClearingConfirmation = State()
+    CategoryNewNameRequest = State()

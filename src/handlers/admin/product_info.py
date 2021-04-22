@@ -101,7 +101,6 @@ async def return_to_product(call: CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
         product = await db.get_product(data["product_id"])
     answer = await get_product_message(product)
-    await call.message.edit_media(InputMediaPhoto(InputFile(answer["img_path"])))
     await call.message.edit_caption(answer["text"], reply_markup=answer["rm"])
 
 
