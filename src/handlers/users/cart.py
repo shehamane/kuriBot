@@ -2,8 +2,6 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.types import Message, CallbackQuery, InputFile, InputMediaPhoto
 
-from filters.is_numeric import IsNumericFilterCallback
-
 from keyboards.inline import get_cart_item_operating_kb, get_cart_kb, confirmation_kb
 from utils.callback_datas import choose_cart_item_cd
 

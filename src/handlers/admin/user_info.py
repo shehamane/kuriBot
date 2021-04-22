@@ -1,16 +1,16 @@
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
-from aiogram.types import Message, CallbackQuery, InlineKeyboardButton
+from aiogram.types import Message, CallbackQuery
 
 from data.api_config import USERS_PAGE_VOLUME
-from filters.is_numeric import IsNumericFilterCallback, IsNumericFilter
+from filters.is_numeric import IsNumericFilter
 from keyboards.default import admin_panel_kb
 from keyboards.default.admin_panel import back_kb
-from keyboards.inline import get_users_list_kb, user_info_kb, get_orders_kb, back_button, add_button
+from keyboards.inline import get_users_list_kb, user_info_kb, get_orders_kb
 from states import UserInfo, AdminPanel, AdminCatalog
+from utils.callback_datas import choose_user_cd, choose_order_cd
 
 from loader import dp
-from utils.callback_datas import choose_user_cd, choose_order_cd
 from utils.db_api.api import db_api as db
 
 
@@ -151,4 +151,3 @@ async def show_order_info(call: CallbackQuery, callback_data: dict):
     text += f"\nСумма: {to_pay}р.\n"
 
     await call.message.answer(text)
-

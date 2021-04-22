@@ -1,17 +1,15 @@
 from aiogram.dispatcher import FSMContext
 from aiogram.types import CallbackQuery, Message, InputMediaPhoto, InputFile
 
-from data.media_config import IMG_CATALOG_PATH
-from filters.is_numeric import IsNumericFilterCallback
 from handlers.admin.catalog_navigation import get_category_message
 from keyboards.inline.admin_catalog import product_info_kb
 from keyboards.inline.general import confirmation_kb, cancel_kb
-from loader import dp
 from states import AdminCatalog
 from utils.callback_datas import choose_product_cd
 from utils.db_api.api import db_api as db, Product
 from utils.misc.files import download_product_image, get_product_image_path
 
+from loader import dp
 
 @dp.callback_query_handler(choose_product_cd.filter(), state=AdminCatalog.Products)
 async def show_product_info(call: CallbackQuery, callback_data: dict, state: FSMContext):
