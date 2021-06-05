@@ -1,7 +1,3 @@
-import asyncio
-import asyncpg
-import logging
-
 from gino.schema import GinoSchemaVisitor
 from .api import db, db_api, Category
 
