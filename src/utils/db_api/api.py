@@ -216,12 +216,13 @@ class DBCommands:
         return product
 
     async def get_products_by_page(self, parent_id, page_num, products_number):
-        products = await Product.query.where(Product.category_id == parent_id).limit(products_number).offset(
+        products = await Product.query.where(Product.category_id == parent_id).order_by(Product.name).limit(
+            products_number).offset(
             page_num * products_number).gino.all()
         return products
 
     async def get_product_by_page(self, parent_id, page_num):
-        product = await Product.query.where(Product.category_id == parent_id).limit(1).offset(
+        product = await Product.query.where(Product.category_id == parent_id).order_by(Product.name).limit(1).offset(
             page_num).gino.first()
         return product
 
@@ -290,7 +291,8 @@ class DBCommands:
     async def get_cart_page(self, page_num):
         cart = await self.get_current_cart()
         cart_items_info = await db.select([Product.name, Product.price, CartItem.id, CartItem.amount]).select_from(
-            CartItem.join(Cart).join(Product)).where(Cart.id == cart.id).limit(CART_PAGE_VOLUME).offset(
+            CartItem.join(Cart).join(Product)).where(Cart.id == cart.id).order_by(Product.name).limit(
+            CART_PAGE_VOLUME).offset(
             page_num * CART_PAGE_VOLUME).gino.all()
         return cart_items_info
 
@@ -359,7 +361,7 @@ class DBCommands:
         if not user_id:
             user_id = (await self.get_current_user()).id
         carts = await db.select([Order]).select_from(Order.join(Cart)).where(
-            Cart.user_id == user_id).gino.all()
+            Cart.user_id == user_id).order_by(Cart.id).gino.all()
 
         return carts
 
