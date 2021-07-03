@@ -1,0 +1,4 @@
+env
+database
+.idea
+docker_install.sh
