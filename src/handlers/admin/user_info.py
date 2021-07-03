@@ -143,11 +143,9 @@ async def show_order_info(call: CallbackQuery, callback_data: dict):
     cart_items = await db.get_cart_items_by_cart(order.cart_id)
 
     text = f"ЗАКАЗ ОТ {order.date}\n\n"
-    to_pay = 0
     for cart_item in cart_items:
         product = await db.get_product(cart_item.product_id)
         text += f"{product.name} x {cart_item.amount} \t\t\t\t\t {product.price * cart_item.amount}р.\n"
-        to_pay += product.price * cart_item.amount
-    text += f"\nСумма: {to_pay}р.\n"
+    text += f"\nСумма: {order.price}р.\n"
 
     await call.message.answer(text)
