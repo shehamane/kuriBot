@@ -17,6 +17,9 @@ async def gen_img_files():
         shutil.copyfile("img/default.png", "img/cart.png")
 
 
+async def download_image(path, image: PhotoSize):
+    await image.download("img/" + path)
+
 async def download_product_image(product_id, image: PhotoSize):
     dir_path = "img/products/" + str(product_id)
     if not os.path.exists(dir_path):
