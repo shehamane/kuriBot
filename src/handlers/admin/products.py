@@ -33,7 +33,7 @@ async def get_info(message: Message, state: FSMContext):
                 "Вы неверно ввели информацию. Сообщение должно содержать 3 фрагмента,"
                 "разделенные символом '$'. Попробуйте снова", reply_markup=cancel_kb)
         else:
-            product_id = await db.create_product(strings[0], strings[1], int(strings[2]), data["category_id"])
+            product_id = await db.create_product(strings[0], strings[1], abs(int(strings[2])), data["category_id"])
             data["product_id"] = product_id
 
             await data["main_message"].edit_caption("Продукт успешно создан",

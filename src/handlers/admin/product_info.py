@@ -61,10 +61,11 @@ async def change_info(message: Message, state: FSMContext):
             await db.change_product_description(data["product_id"], value)
         elif data["edit_type"] == "change_price":
             if value.isnumeric():
-                await db.change_product_price(data["product_id"], int(value))
+                await db.change_product_price(data["product_id"], abs(int(value)))
             else:
                 await data["main_message"].edit_caption("Введите новое значение корректно",
                                                         reply_markup=cancel_kb)
+                return
         product = await db.get_product(data["product_id"])
         answer = await get_product_message(product)
         await data["main_message"].edit_caption(answer["text"], reply_markup=answer["rm"])
