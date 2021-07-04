@@ -26,6 +26,8 @@ services:
     build:
       context: .
     command: python src/app.py
+    volumes:
+      - ./img:/build/img
     restart: always
     depends_on:
       - db
