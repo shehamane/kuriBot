@@ -7,8 +7,13 @@ class AdminPanel(StatesGroup):
 
 class Settings(StatesGroup):
     Menu = State()
+    AppearanceMenu = State()
     CatalogImageRequest = State()
     CartImageRequest = State()
+    PaymentMenu = State()
+    DeliveryMethods = State()
+    DeliveryMethodInfoRequest = State()
+    DeliveryMethodDeletionConfirmation = State()
 
 
 class UserInfo(StatesGroup):

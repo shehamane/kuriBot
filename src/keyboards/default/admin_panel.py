@@ -25,6 +25,18 @@ back_kb = ReplyKeyboardMarkup([
 
 settings_kb = ReplyKeyboardMarkup([
     [
+        KeyboardButton(text="Внешний вид")
+    ],
+    [
+        KeyboardButton(text="Оплата")
+    ],
+    [
+        KeyboardButton(text="Назад"),
+    ]
+])
+
+appearance_settings_kb = ReplyKeyboardMarkup([
+    [
         KeyboardButton(text="Изображение каталога")
     ],
     [
@@ -32,5 +44,20 @@ settings_kb = ReplyKeyboardMarkup([
     ],
     [
         KeyboardButton(text="Назад"),
+    ]
+])
+
+payment_settings_kb = ReplyKeyboardMarkup([
+    [
+        KeyboardButton(text="Валюта")
+    ],
+    [
+        KeyboardButton(text="Способы доставки")
+    ],
+    [
+        KeyboardButton(text="Способы оплаты")
+    ],
+    [
+        KeyboardButton(text="Назад")
     ]
 ])

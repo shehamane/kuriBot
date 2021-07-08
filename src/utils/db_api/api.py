@@ -12,6 +12,15 @@ from utils.misc.files import delete_product_image
 db = Gino()
 
 
+class DeliveryMetod(db.Model):
+    __tablename__ = "delivery_methods"
+    query: sql.Select
+
+    id = Column(Integer, Sequence("delivery_method_id_seq"), primary_key=True)
+    name = Column(String(30))
+    price = Column(Integer)
+
+
 class User(db.Model):
     __tablename__ = "users"
     query: sql.Select
@@ -93,6 +102,27 @@ class Order(db.Model):
 
 
 class DBCommands:
+    # DELIVERY
+
+    async def create_delivery_method(self, name, price):
+        new_method = DeliveryMetod
+        new_method.name = name
+        new_method.price = price
+        await new_method.create()
+        return new_method
+
+    async def get_delivery_method(self, method_id):
+        method = await DeliveryMetod.query.where(DeliveryMetod.id == method_id).gino.first()
+        return method
+
+    async def delete_delivery_method(self, method_id):
+        method = await self.get_delivery_method(method_id)
+        await method.delete()
+
+    async def get_delivery_methods_list(self):
+        methods = await DeliveryMetod.query.gino.all()
+        return methods
+
     # USERS
     async def create_user(self, referral_id=None):
         user = types.User.get_current()

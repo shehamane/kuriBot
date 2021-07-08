@@ -18,6 +18,6 @@ async def show_admin_panel(message: Message, state: FSMContext):
     await message.answer('Вы вошли в панель администратора. Отправьте "отмена" для выхода', reply_markup=admin_panel_kb)
 
 
-@dp.message_handler(Text(ignore_case=True, contains=['назад']), state=[Settings.Menu])
+@dp.message_handler(Text(ignore_case=True, contains=['назад']), state=Settings.Menu)
 async def back_to_admin_panel(message: Message, state: FSMContext):
     await show_admin_panel(message, state)
