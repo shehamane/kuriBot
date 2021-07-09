@@ -2,11 +2,11 @@ from datetime import datetime
 
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
-from aiogram.types import Message, CallbackQuery, LabeledPrice, PreCheckoutQuery, ContentType, ShippingQuery
+from aiogram.types import Message, CallbackQuery, LabeledPrice, PreCheckoutQuery, ContentType, ShippingQuery, \
+    ShippingOption
 
 from data.config import PAYMENT_TOKEN
-from data.shop_config import IS_PREPAYMENT, CURRENCY, NEED_NAME, NEED_EMAIL, NEED_PHONE_NUMBER, NEED_SHIPPING_ADDRESS, \
-    RUSSIAN_POST_SHIPPING_OPTION, PICKUP_SHIPPING_OPTION
+from data.shop_config import IS_PREPAYMENT, CURRENCY, NEED_NAME, NEED_EMAIL, NEED_PHONE_NUMBER, NEED_SHIPPING_ADDRESS
 from keyboards.inline.general import confirmation_cancel_kb
 from loader import dp, bot
 from states.ordering import Ordering
@@ -26,7 +26,7 @@ async def confirm_address(message: Message, state: FSMContext):
     user = await db.get_current_user()
     cart = await db.get_cart_items_by_user(user.id)
 
-    text = "===============ЗАКАЗ===============\n\n"
+    text = "ЗАКАЗ\n\n"
     to_pay = 0
     prices = []
     for record in cart:
@@ -39,7 +39,7 @@ async def confirm_address(message: Message, state: FSMContext):
     async with state.proxy() as data:
         data["prices"] = prices
 
-    text += f"\nСумма: {to_pay}р.\n" \
+    text += f"\nСумма (без доставки): {to_pay}р.\n" \
             f"Оформить заказ?"
 
     await message.answer(text, reply_markup=confirmation_cancel_kb)
@@ -78,8 +78,9 @@ async def checkout(query: PreCheckoutQuery):
 @dp.shipping_query_handler(lambda query: True, state=Ordering.Payment)
 async def process_shipping_query(query: ShippingQuery):
     await bot.answer_shipping_query(query.id, ok=True, shipping_options=[
-        RUSSIAN_POST_SHIPPING_OPTION,
-        PICKUP_SHIPPING_OPTION])
+        ShippingOption(id=method.id, title=method.name).add(LabeledPrice(method.name, method.price)) for method in
+        await db.get_delivery_methods_list()
+    ])
 
 
 @dp.message_handler(content_types=ContentType.SUCCESSFUL_PAYMENT, state=Ordering.Payment)
