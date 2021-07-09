@@ -25,7 +25,8 @@ async def show_settings_menu(message: Message, state: FSMContext):
     await Settings.Menu.set()
 
 
-@dp.message_handler(Text(equals="Назад"), state=[Settings.AppearanceMenu, Settings.PaymentMenu])
+@dp.message_handler(Text(equals="Назад"), state=[Settings.AppearanceMenu, Settings.PaymentMenu,
+                                                 Settings.DeliveryMethods, Settings.PaymentMethods])
 async def back_to_menu(message: Message, state: FSMContext):
     await show_settings_menu(message, state)
 
