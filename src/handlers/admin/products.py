@@ -28,7 +28,7 @@ async def add_new_product(call: CallbackQuery):
 async def get_info(message: Message, state: FSMContext):
     strings = message.text.split('$')
     async with state.proxy() as data:
-        if len(strings) != 3 or not strings[2].is_numeric():
+        if len(strings) != 3 or not strings[2].isnumeric():
             await data["main_message"].edit_caption(
                 "Вы неверно ввели информацию. Сообщение должно содержать 3 фрагмента,"
                 "разделенные символом '$'. Попробуйте снова", reply_markup=cancel_kb)
