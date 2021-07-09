@@ -104,8 +104,8 @@ class Order(db.Model):
 class DBCommands:
     # DELIVERY
 
-    async def create_delivery_method(self, name, price):
-        new_method = DeliveryMetod
+    async def create_delivery_method(self, name: str, price: int):
+        new_method = DeliveryMetod()
         new_method.name = name
         new_method.price = price
         await new_method.create()

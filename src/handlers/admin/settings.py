@@ -3,8 +3,9 @@ from aiogram.dispatcher.filters import Text
 from aiogram.types import Message, CallbackQuery
 
 from keyboards.default.admin_panel import settings_kb, appearance_settings_kb, payment_settings_kb
-from keyboards.inline import cancel_kb, confirmation_kb, confirmation_cancel_kb
+from keyboards.inline import cancel_kb, confirmation_cancel_kb
 from keyboards.inline.delivery_methods import get_delivery_kb
+from keyboards.inline.payment_methods import payment_method_kb
 from loader import dp
 from utils.callback_datas import choose_delivery_method_cd
 from utils.db_api.api import db_api as db
@@ -12,6 +13,7 @@ from utils.db_api.api import db_api as db
 from states import AdminPanel, AdminCatalog, UserInfo
 from states.admin import Settings
 from utils.misc.files import download_image
+import utils.misc.config_writer
 
 
 @dp.message_handler(Text(ignore_case=True, contains=["настройки"]),
@@ -77,7 +79,7 @@ async def show_payment_settings(message: Message):
     await Settings.PaymentMenu.set()
 
 
-@dp.message_handler(Text(equals="Способы доставки"), state=Settings.PaymentMenu)
+@dp.message_handler(Text(equals="Способы доставки"), state=[Settings.PaymentMenu, Settings.PaymentMethods])
 async def show_delivery_methods_list(message: Message, state: FSMContext):
     async with state.proxy() as data:
         data["main_message"] = await message.answer("Чтобы удалить способ доставки, нажмите на него",
@@ -102,7 +104,7 @@ async def create_method(message: Message, state: FSMContext):
                 "Вы неверно ввели информацию. Сообщение должно содержать 2 фрагмента,"
                 "разделенные символом '$'. Попробуйте снова", reply_markup=cancel_kb)
         else:
-            await db.create_delivery_method(strings[0], strings[1])
+            await db.create_delivery_method(strings[0], int(strings[1]))
             await data["main_message"].edit_text("Способы доставки:", reply_markup=await get_delivery_kb(
                 await db.get_delivery_methods_list()))
             await Settings.DeliveryMethods.set()
@@ -131,3 +133,40 @@ async def cancel_operation(call: CallbackQuery):
     await call.message.edit_text("Способы доставки:", reply_markup=await get_delivery_kb(
         await db.get_delivery_methods_list()))
     await Settings.DeliveryMethods.set()
+
+
+@dp.message_handler(text="Способы оплаты", state=[Settings.PaymentMenu, Settings.DeliveryMethods])
+async def show_payment_methods(message: Message, state: FSMContext):
+    async with state.proxy() as data:
+        data["main_message"] = await message.answer("Выберите способ оплаты", reply_markup=payment_method_kb)
+    await Settings.PaymentMethods.set()
+
+
+@dp.callback_query_handler(text="spc", state=Settings.PaymentMethods)
+async def get_payment_method_info(call: CallbackQuery):
+    await call.message.edit_text("Введите информацию об оплате (ее увидят пользователи)")
+    await Settings.PaymentMethodInfoRequest.set()
+
+
+@dp.message_handler(state=Settings.PaymentMethodInfoRequest)
+async def set_new_payment_method(message: Message, state: FSMContext):
+    utils.misc.config_writer.set_payment_method('SPC', message.text)
+    async with state.proxy() as data:
+        await data["main_message"].edit_text("Способ оплаты соханен!")
+
+    await Settings.PaymentMenu.set()
+
+
+@dp.callback_query_handler(state=Settings.PaymentMethods)
+async def set_payment_method(call: CallbackQuery, state: FSMContext):
+    if call.data == "tlg":
+        utils.misc.config_writer.set_payment_method('TLG', 'Оплата онлайн в Telegram')
+    elif call.data == "tnf":
+        utils.misc.config_writer.set_payment_method('TNF', 'Оплата переводом')
+    elif call.data == "csh":
+        utils.misc.config_writer.set_payment_method('CSH', 'Оплата наличными курьеру')
+
+    async with state.proxy() as data:
+        await data["main_message"].edit_text("Способ оплаты соханен!")
+
+    await Settings.PaymentMenu.set()

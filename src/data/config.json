@@ -1,0 +1,6 @@
+{
+    "paymentMethod": {
+        "type": "TLG",
+        "info": "Оплата онлайн в Telegram"
+    }
+}

@@ -14,6 +14,8 @@ class Settings(StatesGroup):
     DeliveryMethods = State()
     DeliveryMethodInfoRequest = State()
     DeliveryMethodDeletionConfirmation = State()
+    PaymentMethods = State()
+    PaymentMethodInfoRequest = State()
 
 
 class UserInfo(StatesGroup):
